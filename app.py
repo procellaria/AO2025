@@ -641,83 +641,83 @@ def create_web_app():
 
                 return current_players[0], round_reached, matches_played
 
-                    # Esegui le simulazioni multiple
-                    np.random.seed(int(time.time()))
+                # Esegui le simulazioni multiple
+                np.random.seed(int(time.time()))
 
-                    winners = []
-                    all_rounds_reached = []
-                    all_matches = []
+                winners = []
+                all_rounds_reached = []
+                all_matches = []
 
-                    progress_bar = st.progress(0)
+                progress_bar = st.progress(0)
 
-                    for i in range(n_sims):
-                        if i % 100 == 0:
-                            progress_bar.progress(i/n_sims)
+                for i in range(n_sims):
+                    if i % 100 == 0:
+                        progress_bar.progress(i/n_sims)
 
-                        winner, rounds_reached, matches = simulate_tournament(verbose=False, track_matches=True)
-                        winners.append(winner)
-                        all_rounds_reached.append(rounds_reached)
-                        all_matches.append(matches)
+                    winner, rounds_reached, matches = simulate_tournament(verbose=False, track_matches=True)
+                    winners.append(winner)
+                    all_rounds_reached.append(rounds_reached)
+                    all_matches.append(matches)
 
-                    progress_bar.progress(1.0)
+                progress_bar.progress(1.0)
 
-                    # Calcola tutte le statistiche
-                    win_counts = Counter(winners)
-                    win_stats = calculate_statistics_with_confidence(win_counts, n_sims)
-                    round_probs = calculate_round_probabilities(all_rounds_reached, n_sims)
+                # Calcola tutte le statistiche
+                win_counts = Counter(winners)
+                win_stats = calculate_statistics_with_confidence(win_counts, n_sims)
+                round_probs = calculate_round_probabilities(all_rounds_reached, n_sims)
 
-                    final_matches = Counter(tuple(sorted(m)) for matches in all_matches
-                                          for m in get_round_matches(matches, 7))
-                    semifinal_matches = Counter(tuple(sorted(m)) for matches in all_matches
-                                              for m in get_round_matches(matches, 6))
+                final_matches = Counter(tuple(sorted(m)) for matches in all_matches
+                                      for m in get_round_matches(matches, 7))
+                semifinal_matches = Counter(tuple(sorted(m)) for matches in all_matches
+                                          for m in get_round_matches(matches, 6))
 
-                    final_stats = calculate_statistics_with_confidence(final_matches, n_sims)
-                    semifinal_stats = calculate_statistics_with_confidence(semifinal_matches, n_sims)
+                final_stats = calculate_statistics_with_confidence(final_matches, n_sims)
+                semifinal_stats = calculate_statistics_with_confidence(semifinal_matches, n_sims)
 
-                    # Mostra i risultati
-                    st.header("Risultati della simulazione")
+                # Mostra i risultati
+                st.header("Risultati della simulazione")
 
-                    # Top 10 probabilità di vittoria
-                    st.subheader("Top 10 probabilità di vittoria finale")
-                    results_data = [
-                        [i+1, player, f"{prob:.1f}", f"{lower:.1f}", f"{upper:.1f}"]
-                        for i, (player, prob, lower, upper) in enumerate(win_stats[:10])
-                    ]
-                    results_df = pd.DataFrame(
-                        results_data,
-                        columns=['#', 'Giocatore', 'Probabilità (%)', 'CI Lower (%)', 'CI Upper (%)']
-                    )
-                    st.dataframe(results_df)
+                # Top 10 probabilità di vittoria
+                st.subheader("Top 10 probabilità di vittoria finale")
+                results_data = [
+                    [i+1, player, f"{prob:.1f}", f"{lower:.1f}", f"{upper:.1f}"]
+                    for i, (player, prob, lower, upper) in enumerate(win_stats[:10])
+                ]
+                results_df = pd.DataFrame(
+                    results_data,
+                    columns=['#', 'Giocatore', 'Probabilità (%)', 'CI Lower (%)', 'CI Upper (%)']
+                )
+                st.dataframe(results_df)
 
-                    # Finali più probabili
-                    st.subheader("Top 10 finali più probabili")
-                    finals_data = [
-                        [i+1, f"{p1} vs {p2}", f"{prob:.1f}", f"{lower:.1f}", f"{upper:.1f}"]
-                        for i, ((p1, p2), prob, lower, upper) in enumerate(final_stats[:10])
-                    ]
-                    finals_df = pd.DataFrame(
-                        finals_data,
-                        columns=['#', 'Finale', 'Probabilità (%)', 'CI Lower (%)', 'CI Upper (%)']
-                    )
-                    st.dataframe(finals_df)
+                # Finali più probabili
+                st.subheader("Top 10 finali più probabili")
+                finals_data = [
+                    [i+1, f"{p1} vs {p2}", f"{prob:.1f}", f"{lower:.1f}", f"{upper:.1f}"]
+                    for i, ((p1, p2), prob, lower, upper) in enumerate(final_stats[:10])
+                ]
+                finals_df = pd.DataFrame(
+                    finals_data,
+                    columns=['#', 'Finale', 'Probabilità (%)', 'CI Lower (%)', 'CI Upper (%)']
+                )
+                st.dataframe(finals_df)
 
-                    # Genera il file di statistiche
-                    stats_content = save_statistics_to_string(
-                        win_stats,
-                        round_probs,
-                        final_stats,
-                        semifinal_stats,
-                        n_sims,
-                        bonus_modifications
-                    )
+                # Genera il file di statistiche
+                stats_content = save_statistics_to_string(
+                    win_stats,
+                    round_probs,
+                    final_stats,
+                    semifinal_stats,
+                    n_sims,
+                    bonus_modifications
+                )
 
-                    # Offri il download del file completo
-                    st.download_button(
-                        label="Scarica statistiche complete",
-                        data=stats_content,
-                        file_name="tennis_statistics.txt",
-                        mime="text/plain"
-                    )
+                # Offri il download del file completo
+                st.download_button(
+                    label="Scarica statistiche complete",
+                    data=stats_content,
+                    file_name="tennis_statistics.txt",
+                    mime="text/plain"
+                )
 
         except Exception as e:
             st.error(f"Si è verificato un errore: {str(e)}")
