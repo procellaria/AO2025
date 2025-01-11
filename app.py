@@ -412,7 +412,7 @@ def create_web_app():
                     # Genera il file di statistiche in memoria
                     buffer = io.StringIO()
                     with redirect_stdout(buffer):
-                        save_statistics_to_file(win_stats, round_stats,
+                        save_statistics_to_file(win_stats, round_probs,  # Changed from round_stats to round_probs
                                              final_stats, semifinal_stats,
                                              n_sims)
 
