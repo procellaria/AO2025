@@ -315,6 +315,72 @@ def run_multiple_simulations(n_simulations=1000):
 
     return win_stats, round_probs, final_stats, semifinal_stats
 
+def save_statistics_to_string(win_stats, round_probs, final_stats, semifinal_stats, n_simulations, bonus_modifications=None):
+    """
+    Salva tutte le statistiche con intervalli di confidenza in una stringa.
+    Ritorna la stringa completa invece di scrivere su file.
+    """
+    output = []
+    output.append(f"SIMULAZIONE AUSTRALIAN OPEN 2025")
+    output.append(f"Numero di simulazioni: {n_simulations}")
+
+    if bonus_modifications:
+        output.append("\nBONUS MODIFICATI:")
+        for player, bonus in bonus_modifications.items():
+            output.append(f"{player}: {bonus}")
+
+    output.append("=" * 50)
+    output.append("\nSTATISTICHE PER GIOCATORE")
+    output.append("-" * 30)
+
+    # Crea un dizionario con tutte le statistiche per giocatore
+    player_stats = {}
+    for player_data in round_probs:
+        player = player_data[0]
+        stats = player_data[1]
+
+        # Cerca le statistiche di vittoria per il giocatore
+        win_stat = next((w for w in win_stats if w[0] == player), None)
+
+        if win_stat is None:
+            victory = 0.0
+            lower, upper = wilson_interval(0, n_simulations, 0.95)
+            victory_ci = (lower, upper)
+        else:
+            victory = win_stat[1]
+            victory_ci = (win_stat[2], win_stat[3])
+
+        player_stats[player] = {
+            "rounds": stats,
+            "victory": victory,
+            "victory_ci": victory_ci
+        }
+
+    # Stampa le statistiche ordinate per probabilità di vittoria
+    for player, stats in sorted(player_stats.items(),
+                              key=lambda x: x[1]["victory"],
+                              reverse=True):
+        output.append(f"\n{player}:")
+        output.append(f"  Vittoria torneo: {stats['victory']:.2f}% "
+                     f"(CI: [{stats['victory_ci'][0]:.2f}%, {stats['victory_ci'][1]:.2f}%])")
+
+        for round_name, prob in stats["rounds"].items():
+            output.append(f"  {round_name}: {prob:.2f}%")
+
+    # Finali più probabili
+    output.append("\n\nFINALI PIÙ PROBABILI")
+    output.append("-" * 30)
+    for (p1, p2), prob, lower, upper in final_stats[:10]:
+        output.append(f"{p1} vs {p2}: {prob:.2f}% (CI: [{lower:.2f}%, {upper:.2f}%])")
+
+    # Semifinali più probabili
+    output.append("\n\nSEMIFINALI PIÙ PROBABILI")
+    output.append("-" * 30)
+    for (p1, p2), prob, lower, upper in semifinal_stats[:10]:
+        output.append(f"{p1} vs {p2}: {prob:.2f}% (CI: [{lower:.2f}%, {upper:.2f}%])")
+
+    return "\n".join(output)
+
 def create_web_app():
     st.title("Simulatore Australian Open 2025")
 
@@ -448,23 +514,19 @@ def create_web_app():
                     st.dataframe(finals_df)
 
                     # Genera il file di statistiche
-                    stats_content = io.StringIO()
-                    # Aggiungi intestazione con informazioni sui bonus modificati
-                    stats_content.write("SIMULAZIONE AUSTRALIAN OPEN 2025\n")
-                    stats_content.write(f"Numero di simulazioni: {n_sims}\n")
-                    if bonus_modifications:
-                        stats_content.write("\nBONUS MODIFICATI:\n")
-                        for player, bonus in bonus_modifications.items():
-                            stats_content.write(f"{player}: {bonus}\n")
-                    stats_content.write("\n" + "="*50 + "\n\n")
-
-                    # Salva le statistiche nel buffer
-                    save_statistics_to_file(win_stats, round_probs, final_stats, semifinal_stats, n_sims)
+                    stats_content = save_statistics_to_string(
+                        win_stats,
+                        round_probs,
+                        final_stats,
+                        semifinal_stats,
+                        n_sims,
+                        bonus_modifications
+                    )
 
                     # Offri il download del file completo
                     st.download_button(
                         label="Scarica statistiche complete",
-                        data=stats_content.getvalue(),
+                        data=stats_content,
                         file_name="tennis_statistics.txt",
                         mime="text/plain"
                     )
