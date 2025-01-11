@@ -719,12 +719,6 @@ def create_web_app():
                     mime="text/plain"
                 )
 
-        except Exception as e:
-            st.error(f"Si è verificato un errore: {str(e)}")
-            st.error("Debug info:")
-            st.exception(e)
-    else:
-        st.info("Carica un file Excel per iniziare la simulazione")
 
 if __name__ == "__main__":
     create_web_app()
