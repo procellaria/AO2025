@@ -36,8 +36,15 @@ def wilson_interval(count, n, confidence=0.95):
 
     return lower*100, upper*100
 
-def load_players(uploaded_file, use_cleaned=True):
-    """Carica i dati dei giocatori dal file Excel caricato."""
+def load_players(uploaded_file, bonus_modifications=None, use_cleaned=True):
+    """
+    Carica i dati dei giocatori dal file Excel caricato.
+
+    Args:
+        uploaded_file: File Excel caricato
+        bonus_modifications: Dizionario con modifiche ai bonus {player_name: new_bonus}
+        use_cleaned: Flag per il cleaning dei dati
+    """
     df = pd.read_excel(uploaded_file, header=None)
 
     if not use_cleaned:
@@ -47,13 +54,19 @@ def load_players(uploaded_file, use_cleaned=True):
         players = df[0].tolist()
 
     base_strengths = df[1].tolist()    # Coefficienti base (punti ATP)
-    bonuses = df[2].tolist()           # Bonus
+    bonuses = df[2].tolist()           # Bonus originali
     states = df[3].tolist()            # Stati (1 = in gioco, 0 = eliminato)
+
+    # Applica le modifiche ai bonus se presenti
+    if bonus_modifications:
+        for i, player in enumerate(players):
+            if player in bonus_modifications:
+                bonuses[i] = bonus_modifications[player]
 
     # Calcola i coefficienti totali considerando lo stato
     total_strengths = [(s + b) * st for s, b, st in zip(base_strengths, bonuses, states)]
 
-    return players, total_strengths
+    return players, total_strengths, bonuses  # Ora ritorna anche i bonus
 
 def play_match(player1, player2, strength1, strength2):
     """Simula una singola partita tra due giocatori."""
@@ -318,14 +331,39 @@ def create_web_app():
     uploaded_file = st.file_uploader("Carica il file Excel con i dati dei giocatori",
                                    type=['xlsx'])
 
+    # Dizionario per tenere traccia delle modifiche ai bonus
+    bonus_modifications = {}
+
     if uploaded_file is not None:
         try:
+            # Carica i dati iniziali per mostrare i giocatori e i loro bonus attuali
+            initial_players, _, initial_bonuses = load_players(uploaded_file, use_cleaned=True)
+
+            # Interfaccia per la modifica dei bonus
+            st.header("Modifica Bonus Giocatori")
+            st.write("Inserisci i nuovi valori bonus per i giocatori (lascia vuoto per mantenere il valore originale)")
+
+            # Crea una griglia di 4 colonne per i bonus
+            cols = st.columns(4)
+            for i, (player, current_bonus) in enumerate(zip(initial_players, initial_bonuses)):
+                # Distribuisci i campi di input tra le colonne
+                col_idx = i % 4
+                with cols[col_idx]:
+                    new_bonus = st.number_input(
+                        f"{player}",
+                        value=float(current_bonus),
+                        step=0.1,
+                        format="%.1f",
+                        key=f"bonus_{i}"
+                    )
+                    if new_bonus != current_bonus:
+                        bonus_modifications[player] = new_bonus
+
             # Esegui la simulazione
             if st.button("Avvia Simulazione"):
                 with st.spinner('Simulazione in corso...'):
-                    # Modifica la funzione simulate_tournament per usare il file caricato
                     def simulate_tournament(verbose=True, track_matches=False):
-                        players, strengths = load_players(uploaded_file, use_cleaned=True)
+                        players, strengths, _ = load_players(uploaded_file, bonus_modifications, use_cleaned=True)
                         round_number = 1
                         num_players = len(players)
 
@@ -349,7 +387,7 @@ def create_web_app():
 
                         return players[0], round_reached, matches_played
 
-                    # Esegui le simulazioni multiple e cattura i risultati
+                    # Esegui le simulazioni multiple
                     np.random.seed(int(time.time()))
 
                     winners = []
@@ -385,7 +423,7 @@ def create_web_app():
                     # Mostra i risultati
                     st.header("Risultati della simulazione")
 
-                    # Top 10 probabilità di vittoria con numerazione corretta e formato migliorato
+                    # Top 10 probabilità di vittoria
                     st.subheader("Top 10 probabilità di vittoria finale")
                     results_data = [
                         [i+1, player, f"{prob:.1f}", f"{lower:.1f}", f"{upper:.1f}"]
@@ -397,7 +435,7 @@ def create_web_app():
                     )
                     st.dataframe(results_df)
 
-                    # Finali più probabili con numerazione corretta e formato migliorato
+                    # Finali più probabili
                     st.subheader("Top 10 finali più probabili")
                     finals_data = [
                         [i+1, f"{p1} vs {p2}", f"{prob:.1f}", f"{lower:.1f}", f"{upper:.1f}"]
@@ -409,23 +447,33 @@ def create_web_app():
                     )
                     st.dataframe(finals_df)
 
-                    # Genera il file di statistiche in memoria
-                    buffer = io.StringIO()
-                    with redirect_stdout(buffer):
-                        save_statistics_to_file(win_stats, round_probs,  # Changed from round_stats to round_probs
-                                             final_stats, semifinal_stats,
-                                             n_sims)
+                    # Genera il file di statistiche
+                    stats_content = io.StringIO()
+                    # Aggiungi intestazione con informazioni sui bonus modificati
+                    stats_content.write("SIMULAZIONE AUSTRALIAN OPEN 2025\n")
+                    stats_content.write(f"Numero di simulazioni: {n_sims}\n")
+                    if bonus_modifications:
+                        stats_content.write("\nBONUS MODIFICATI:\n")
+                        for player, bonus in bonus_modifications.items():
+                            stats_content.write(f"{player}: {bonus}\n")
+                    stats_content.write("\n" + "="*50 + "\n\n")
+
+                    # Salva le statistiche nel buffer
+                    save_statistics_to_file(win_stats, round_probs, final_stats, semifinal_stats, n_sims)
 
                     # Offri il download del file completo
                     st.download_button(
                         label="Scarica statistiche complete",
-                        data=buffer.getvalue(),
+                        data=stats_content.getvalue(),
                         file_name="tennis_statistics.txt",
                         mime="text/plain"
                     )
 
         except Exception as e:
             st.error(f"Si è verificato un errore: {str(e)}")
+            # Aggiungi debug info
+            st.error("Debug info:")
+            st.exception(e)
     else:
         st.info("Carica un file Excel per iniziare la simulazione")
 
