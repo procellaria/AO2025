@@ -44,6 +44,11 @@ def load_players(uploaded_file, bonus_modifications=None, use_cleaned=True):
         uploaded_file: File Excel caricato
         bonus_modifications: Dizionario con modifiche ai bonus {player_name: new_bonus}
         use_cleaned: Flag per il cleaning dei dati
+    Returns:
+        players: Lista dei nomi dei giocatori
+        total_strengths: Lista delle forze totali
+        bonuses: Lista dei bonus attuali
+        base_strengths: Lista delle forze base (ATP points)
     """
     df = pd.read_excel(uploaded_file, header=None)
 
@@ -66,7 +71,7 @@ def load_players(uploaded_file, bonus_modifications=None, use_cleaned=True):
     # Calcola i coefficienti totali considerando lo stato
     total_strengths = [(s + b) * st for s, b, st in zip(base_strengths, bonuses, states)]
 
-    return players, total_strengths, bonuses  # Ora ritorna anche i bonus
+    return players, total_strengths, bonuses, base_strengths
 
 def play_match(player1, player2, strength1, strength2):
     """Simula una singola partita tra due giocatori."""
@@ -398,38 +403,64 @@ def create_web_app():
                                    type=['xlsx'])
 
     # Dizionario per tenere traccia delle modifiche ai bonus
-    bonus_modifications = {}
+    if 'bonus_modifications' not in st.session_state:
+        st.session_state.bonus_modifications = {}
 
     if uploaded_file is not None:
         try:
             # Carica i dati iniziali per mostrare i giocatori e i loro bonus attuali
-            initial_players, _, initial_bonuses = load_players(uploaded_file, use_cleaned=True)
+            initial_players, _, initial_bonuses, base_strengths = load_players(
+                uploaded_file,
+                st.session_state.bonus_modifications,
+                use_cleaned=True
+            )
 
             # Interfaccia per la modifica dei bonus
             st.header("Modifica Bonus Giocatori")
-            st.write("Inserisci i nuovi valori bonus per i giocatori (lascia vuoto per mantenere il valore originale)")
+            st.write("Inserisci i nuovi valori bonus per i giocatori (modifica di 10 punti per click)")
 
             # Crea una griglia di 4 colonne per i bonus
             cols = st.columns(4)
-            for i, (player, current_bonus) in enumerate(zip(initial_players, initial_bonuses)):
+            for i, (player, current_bonus, base_strength) in enumerate(zip(initial_players, initial_bonuses, base_strengths)):
                 # Distribuisci i campi di input tra le colonne
                 col_idx = i % 4
                 with cols[col_idx]:
+                    # Verifica se il giocatore ha già una modifica salvata
+                    current_value = st.session_state.bonus_modifications.get(player, current_bonus)
+
+                    # Calcola il minimo valore consentito per il bonus
+                    min_allowed_bonus = -base_strength  # Il bonus non può rendere negativo il totale
+
                     new_bonus = st.number_input(
                         f"{player}",
-                        value=float(current_bonus),
-                        step=0.1,
-                        format="%.1f",
+                        value=int(current_value),
+                        min_value=int(min_allowed_bonus),
+                        step=10,
+                        format="%d",
                         key=f"bonus_{i}"
                     )
+
+                    # Mostra il totale punti
+                    total_points = base_strength + new_bonus
+                    st.write(f"Totale punti: {int(total_points)}")
+
                     if new_bonus != current_bonus:
-                        bonus_modifications[player] = new_bonus
+                        st.session_state.bonus_modifications[player] = new_bonus
+
+            # Pulsante per resettare tutti i bonus
+            if st.button("Reset Bonus"):
+                st.session_state.bonus_modifications = {}
+                st.experimental_rerun()
 
             # Esegui la simulazione
             if st.button("Avvia Simulazione"):
                 with st.spinner('Simulazione in corso...'):
                     def simulate_tournament(verbose=True, track_matches=False):
-                        players, strengths, _ = load_players(uploaded_file, bonus_modifications, use_cleaned=True)
+                        players, strengths, _, _ = load_players(
+                            uploaded_file,
+                            st.session_state.bonus_modifications,
+                            use_cleaned=True
+                        )
                         round_number = 1
                         num_players = len(players)
 
@@ -533,7 +564,6 @@ def create_web_app():
 
         except Exception as e:
             st.error(f"Si è verificato un errore: {str(e)}")
-            # Aggiungi debug info
             st.error("Debug info:")
             st.exception(e)
     else:
