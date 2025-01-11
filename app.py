@@ -323,7 +323,64 @@ def create_web_app():
             # Esegui la simulazione
             if st.button("Avvia Simulazione"):
                 with st.spinner('Simulazione in corso...'):
-                    # ... [codice della simulazione rimane uguale] ...
+                    # Modifica la funzione simulate_tournament per usare il file caricato
+                    def simulate_tournament(verbose=True, track_matches=False):
+                        players, strengths = load_players(uploaded_file, use_cleaned=True)
+                        round_number = 1
+                        num_players = len(players)
+
+                        round_reached = defaultdict(int)
+                        matches_played = []
+
+                        if verbose:
+                            st.text(f"Inizio torneo con {num_players} giocatori")
+
+                        while num_players > 1:
+                            players, strengths, round_matches = simulate_round(players, strengths)
+
+                            for p in players:
+                                round_reached[p] = round_number + 1
+
+                            if track_matches:
+                                matches_played.extend(round_matches)
+
+                            num_players = len(players)
+                            round_number += 1
+
+                        return players[0], round_reached, matches_played
+
+                    # Esegui le simulazioni multiple e cattura i risultati
+                    np.random.seed(int(time.time()))
+
+                    winners = []
+                    all_rounds_reached = []
+                    all_matches = []
+
+                    progress_bar = st.progress(0)
+
+                    for i in range(n_sims):
+                        if i % 100 == 0:
+                            progress_bar.progress(i/n_sims)
+
+                        winner, rounds_reached, matches = simulate_tournament(verbose=False, track_matches=True)
+                        winners.append(winner)
+                        all_rounds_reached.append(rounds_reached)
+                        all_matches.append(matches)
+
+                    progress_bar.progress(1.0)
+
+                    # Calcola tutte le statistiche
+                    win_counts = Counter(winners)
+                    win_stats = calculate_statistics_with_confidence(win_counts, n_sims)
+                    round_probs = calculate_round_probabilities(all_rounds_reached, n_sims)
+
+                    final_matches = Counter(tuple(sorted(m)) for matches in all_matches
+                                          for m in get_round_matches(matches, 7))
+                    semifinal_matches = Counter(tuple(sorted(m)) for matches in all_matches
+                                              for m in get_round_matches(matches, 6))
+
+                    final_stats = calculate_statistics_with_confidence(final_matches, n_sims)
+                    semifinal_stats = calculate_statistics_with_confidence(semifinal_matches, n_sims)
 
                     # Mostra i risultati
                     st.header("Risultati della simulazione")
