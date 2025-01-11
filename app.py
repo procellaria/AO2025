@@ -35,10 +35,9 @@ def wilson_interval(count, n, confidence=0.95):
 
     return lower*100, upper*100
 
-def load_players(use_cleaned=True):
-    """Carica i dati dei giocatori dal file Excel."""
-    filename = 'data_2.xlsx' if use_cleaned else 'data.xlsx'
-    df = pd.read_excel(filename, header=None)
+def load_players(uploaded_file, use_cleaned=True):
+    """Carica i dati dei giocatori dal file Excel caricato."""
+    df = pd.read_excel(uploaded_file, header=None)
 
     if not use_cleaned:
         df = df.iloc[1:, :]
@@ -319,14 +318,74 @@ def create_web_app():
                                    type=['xlsx'])
 
     if uploaded_file is not None:
-        # Memorizza il file caricato in una variabile di sessione
-        if 'excel_data' not in st.session_state:
-            st.session_state.excel_data = uploaded_file.getvalue()
-
         try:
             # Esegui la simulazione
             if st.button("Avvia Simulazione"):
                 with st.spinner('Simulazione in corso...'):
+                    # Modifica la funzione simulate_tournament per usare il file caricato
+                    def simulate_tournament(verbose=True, track_matches=False):
+                        players, strengths = load_players(uploaded_file, use_cleaned=True)
+                        round_number = 1
+                        num_players = len(players)
+
+                        # Dizionari per tracciare i progressi
+                        round_reached = defaultdict(int)
+                        matches_played = []  # Lista di tutte le partite giocate
+
+                        if verbose:
+                            st.text(f"Inizio torneo con {num_players} giocatori")
+
+                        while num_players > 1:
+                            players, strengths, round_matches = simulate_round(players, strengths)
+
+                            # Aggiorna le statistiche
+                            for p in players:
+                                round_reached[p] = round_number + 1
+
+                            if track_matches:
+                                matches_played.extend(round_matches)
+
+                            num_players = len(players)
+                            round_number += 1
+
+                        return players[0], round_reached, matches_played
+
+                    # Modifica run_multiple_simulations per mostrare il progresso su Streamlit
+                    def run_multiple_simulations(n_simulations=1000):
+                        np.random.seed(int(time.time()))
+
+                        winners = []
+                        all_rounds_reached = []
+                        all_matches = []
+
+                        progress_bar = st.progress(0)
+
+                        for i in range(n_simulations):
+                            if i % 100 == 0:
+                                progress_bar.progress(i/n_simulations)
+
+                            winner, rounds_reached, matches = simulate_tournament(verbose=False, track_matches=True)
+                            winners.append(winner)
+                            all_rounds_reached.append(rounds_reached)
+                            all_matches.append(matches)
+
+                        progress_bar.progress(1.0)
+
+                        # Calcoli statistici come prima...
+                        win_counts = Counter(winners)
+                        win_stats = calculate_statistics_with_confidence(win_counts, n_simulations)
+                        round_probs = calculate_round_probabilities(all_rounds_reached, n_simulations)
+
+                        final_matches = Counter(tuple(sorted(m)) for matches in all_matches
+                                              for m in get_round_matches(matches, 7))
+                        semifinal_matches = Counter(tuple(sorted(m)) for matches in all_matches
+                                                  for m in get_round_matches(matches, 6))
+
+                        final_stats = calculate_statistics_with_confidence(final_matches, n_simulations)
+                        semifinal_stats = calculate_statistics_with_confidence(semifinal_matches, n_simulations)
+
+                        return win_stats, round_probs, final_stats, semifinal_stats
+
                     # Esegui le simulazioni
                     win_stats, round_stats, final_stats, semifinal_stats = run_multiple_simulations(n_sims)
 
@@ -350,11 +409,12 @@ def create_web_app():
                     )
                     st.dataframe(finals_df)
 
-                    # Genera il file di statistiche
+                    # Genera il file di statistiche in memoria
                     buffer = io.StringIO()
-                    save_statistics_to_file(win_stats, round_stats,
-                                         final_stats, semifinal_stats,
-                                         n_sims, file=buffer)
+                    with redirect_stdout(buffer):
+                        save_statistics_to_file(win_stats, round_stats,
+                                             final_stats, semifinal_stats,
+                                             n_sims)
 
                     # Offri il download del file completo
                     st.download_button(
@@ -370,4 +430,4 @@ def create_web_app():
         st.info("Carica un file Excel per iniziare la simulazione")
 
 if __name__ == "__main__":
-    create_web_app()    
+    create_web_app()
