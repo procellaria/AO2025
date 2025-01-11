@@ -7,6 +7,151 @@ from collections import Counter, defaultdict
 from scipy.stats import norm
 import io
 
+
+# Dati hardcoded dal file Excel
+INITIAL_DATA = [
+    ('Sinner', 11830, 1500, 1),
+    ('Jarry', 1390, 0, 1),
+    ('Schoolkate', 334, 0, 1),
+    ('Daniel', 674, 0, 1),
+    ('Giron', 1150, 0, 1),
+    ('Hanfmann', 615, 0, 1),
+    ('Etcheverry', 1315, 0, 1),
+    ('Cobolli', 1512, 0, 1),
+    ('Hurkacz', 2555, 0, 1),
+    ('Griekspoor', 1280, 0, 1),
+    ('Kecmanović', 1021, 0, 1),
+    ('Lajović', 742, 0, 1),
+    ('Berrettini', 1380, 250, 1),
+    ('Norrie', 1082, 0, 1),
+    ('Zhang', 1140, 0, 1),
+    ('Rune', 2910, 0, 1),
+    ('Tsitsipas', 3195, 250, 1),
+    ('Michelsen', 1270, 0, 1),
+    ('Mccabe', 216, 0, 1),
+    ('Landaluce', 414, 0, 1),
+    ('Diallo', 646, 0, 1),
+    ('Nardi', 637, 0, 1),
+    ('Mannarino', 744, 0, 1),
+    ('Khachanov', 2410, 0, 1),
+    ('Cerúndolo', 1620, 0, 1),
+    ('Bublik', 1330, 0, 1),
+    ('Díaz Acosta', 714, 0, 1),
+    ('Bergs', 783, 150, 1),
+    ('Boyer', 452, 0, 1),
+    ('Coria', 617, 0, 1),
+    ('Van De Zandschulp', 672, 0, 1),
+    ('De Minaur', 3535, 0, 1),
+    ('Fritz', 5350, 0, 1),
+    ('Brooksby', 0, 50, 1),
+    ('Ćorić', 639, 0, 1),
+    ('Garín', 382, 0, 1),
+    ('Comesaña', 662, 0, 1),
+    ('Altmaier', 582, 0, 1),
+    ('Monfils', 1130, 0, 1),
+    ('Mpetshi Perricard', 1651, 150, 1),
+    ('Shelton', 2280, 0, 1),
+    ('Nakashima', 1335, 100, 1),
+    ('Carreño Busta', 317, 0, 1),
+    ('Majchrzak', 491, 0, 1),
+    ('Bautista Agut', 1067, 0, 1),
+    ('Shapovalov', 1006, 0, 1),
+    ('Arnaldi', 1305, 0, 1),
+    ('Musetti', 2600, 200, 1),
+    ('Rublev', 3520, 200, 1),
+    ('Fonseca', 520, 100, 1),
+    ('Sonego', 1026, 0, 1),
+    ('Wawrinka', 371, 50, 1),
+    ('Seyboth Wild', 732, 0, 1),
+    ('Marozsán', 960, 0, 1),
+    ('Rinderknech', 927, 0, 1),
+    ('Tiafoe', 2560, 0, 1),
+    ('Popyrin', 1840, 50, 1),
+    ('Moutet', 772, 0, 1),
+    ('Hijikata', 759, 0, 1),
+    ('Krueger', 396, 0, 1),
+    ('Ugo Carabelli', 624, 0, 1),
+    ('Tien', 493, 0, 1),
+    ('Samrej', 109, 0, 1),
+    ('Medvedev', 5030, 500, 1),
+    ('Djokovic', 3900, 2500, 1),
+    ('Basavareddy', 566, 0, 1),
+    ('Faria', 481, 0, 1),
+    ('Kotov', 612, 0, 1),
+    ('Onclin', 242, 0, 1),
+    ('Opelka', 341, 100, 1),
+    ('Nagal', 635, 0, 1),
+    ('Macháč', 1805, 0, 1),
+    ('Lehečka', 1660, 0, 1),
+    ('Tu', 342, 0, 1),
+    ('Gaston', 703, 0, 1),
+    ('Jasika', 323, 0, 1),
+    ('Goffin', 1029, 0, 1),
+    ('Bonzi', 819, 150, 1),
+    ('Fognini', 637, 0, 1),
+    ('Dimitrov', 3200, 0, 1),
+    ('Draper', 2530, 0, 1),
+    ('Navone', 1173, 0, 1),
+    ('Kokkinakis', 766, 0, 1),
+    ('Safiullin', 823, 0, 1),
+    ('Džumhur', 679, 0, 1),
+    ('Vukic', 778, 0, 1),
+    ('Klein', 405, 0, 1),
+    ('Korda', 2000, 0, 1),
+    ('Thompson', 1695, 0, 1),
+    ('Koepfer', 485, 0, 1),
+    ('Müller', 965, 0, 1),
+    ('Borges', 1445, 0, 1),
+    ('Nishioka', 807, 0, 1),
+    ('Dougaz', 254, 0, 1),
+    ('Shevchenko', 743, 0, 1),
+    ('Alcaraz', 7010, 1000, 1),
+    ('Ruud', 4210, 500, 1),
+    ('Munar', 922, 0, 1),
+    ('Basilashvili', 273, 0, 1),
+    ('Menšík', 1162, 150, 1),
+    ('Shang', 1115, 0, 1),
+    ('Davidovich Fokina', 790, 0, 1),
+    ('Struff', 1240, 0, 1),
+    ('Auger Aliassime', 1755, 0, 1),
+    ('Tabilo', 1705, 0, 1),
+    ('Carballés Baena', 981, 0, 1),
+    ('Duckworth', 637, 0, 1),
+    ('Stricker', 173, 0, 1),
+    ('Nishikori', 743, 0, 1),
+    ('Monteiro', 566, 0, 1),
+    ("O'Connell", 770, 0, 1),
+    ('Paul', 3145, 0, 1),
+    ('Humbert', 2765, 0, 1),
+    ('Gigante', 403, 0, 1),
+    ('Habib', 264, 0, 1),
+    ('Bu', 784, 0, 1),
+    ('Walton', 636, 0, 1),
+    ('Halys', 756, 0, 1),
+    ('Virtanen', 627, 0, 1),
+    ('Fils', 2280, 0, 1),
+    ('Báez', 1690, 0, 1),
+    ('Cazaux', 732, 0, 1),
+    ('Fearnley', 632, 0, 1),
+    ('Kyrgios', 0, 100, 1),
+    ('Martínez', 1220, 0, 1),
+    ('Darderi', 1198, 0, 1),
+    ('Pouille', 575, 0, 1),
+    ('Zverev', 7635, 500, 1),
+]
+
+def get_initial_data():
+    """Restituisce i dati iniziali in formato utilizzabile"""
+    players = [p[0] for p in INITIAL_DATA]
+    base_strengths = [p[1] for p in INITIAL_DATA]
+    default_bonuses = [p[2] for p in INITIAL_DATA]
+    default_states = [p[3] for p in INITIAL_DATA]
+    return players, base_strengths, default_bonuses, default_states
+
+def calculate_total_strengths(base_strengths, bonuses, states):
+    """Calcola le forze totali dei giocatori"""
+    return [(s + b) * st for s, b, st in zip(base_strengths, bonuses, states)]
+
 def wilson_interval(count, n, confidence=0.95):
     """
     Calcola l'intervallo di confidenza di Wilson per una proporzione.
@@ -389,6 +534,15 @@ def save_statistics_to_string(win_stats, round_probs, final_stats, semifinal_sta
 def create_web_app():
     st.title("Simulatore Australian Open 2025")
 
+    # Inizializzazione dello state
+    if 'bonus_modifications' not in st.session_state:
+        st.session_state.bonus_modifications = {}
+    if 'player_states' not in st.session_state:
+        _, _, _, default_states = get_initial_data()
+        st.session_state.player_states = {
+            player[0]: player[3] for player in INITIAL_DATA
+        }
+
     # Sidebar per i parametri
     st.sidebar.header("Parametri Simulazione")
     n_sims = st.sidebar.slider("Numero di simulazioni",
@@ -397,92 +551,95 @@ def create_web_app():
                               value=1000,
                               step=100)
 
-    # Upload del file Excel
-    st.header("Carica i dati dei giocatori")
-    uploaded_file = st.file_uploader("Carica il file Excel con i dati dei giocatori",
-                                   type=['xlsx'])
+    # Carica i dati iniziali
+    players, base_strengths, default_bonuses, _ = get_initial_data()
 
-    # Dizionario per tenere traccia delle modifiche ai bonus
-    if 'bonus_modifications' not in st.session_state:
-        st.session_state.bonus_modifications = {}
+    # Interfaccia per la modifica dei bonus e stati
+    st.header("Gestione Giocatori")
+    st.write("Modifica bonus e stato dei giocatori")
 
-    if uploaded_file is not None:
-        try:
-            # Carica i dati iniziali per mostrare i giocatori e i loro bonus attuali
-            initial_players, _, initial_bonuses, base_strengths = load_players(
-                uploaded_file,
-                st.session_state.bonus_modifications,
-                use_cleaned=True
+    # Crea una griglia di 4 colonne
+    cols = st.columns(4)
+    for i, (player, base_strength, default_bonus) in enumerate(zip(players, base_strengths, default_bonuses)):
+        col_idx = i % 4
+        with cols[col_idx]:
+            st.subheader(player)
+
+            # Bonus input
+            current_bonus = st.session_state.bonus_modifications.get(player, default_bonus)
+            min_allowed_bonus = -base_strength
+
+            new_bonus = st.number_input(
+                "Bonus",
+                value=int(current_bonus),
+                min_value=int(min_allowed_bonus),
+                step=10,
+                format="%d",
+                key=f"bonus_{i}"
             )
 
-            # Interfaccia per la modifica dei bonus
-            st.header("Modifica Bonus Giocatori")
-            st.write("Inserisci i nuovi valori bonus per i giocatori (modifica di 10 punti per click)")
+            if new_bonus != current_bonus:
+                st.session_state.bonus_modifications[player] = new_bonus
 
-            # Crea una griglia di 4 colonne per i bonus
-            cols = st.columns(4)
-            for i, (player, current_bonus, base_strength) in enumerate(zip(initial_players, initial_bonuses, base_strengths)):
-                # Distribuisci i campi di input tra le colonne
-                col_idx = i % 4
-                with cols[col_idx]:
-                    # Verifica se il giocatore ha già una modifica salvata
-                    current_value = st.session_state.bonus_modifications.get(player, current_bonus)
+            # Stato del giocatore (in gioco/eliminato)
+            is_active = st.toggle(
+                "In gioco",
+                value=bool(st.session_state.player_states[player]),
+                key=f"state_{i}"
+            )
+            st.session_state.player_states[player] = 1 if is_active else 0
 
-                    # Calcola il minimo valore consentito per il bonus
-                    min_allowed_bonus = -base_strength  # Il bonus non può rendere negativo il totale
+            # Mostra il totale punti
+            total_points = base_strength + new_bonus
+            st.write(f"Totale punti: {int(total_points)}")
 
-                    new_bonus = st.number_input(
-                        f"{player}",
-                        value=int(current_value),
-                        min_value=int(min_allowed_bonus),
-                        step=10,
-                        format="%d",
-                        key=f"bonus_{i}"
+            st.divider()
+
+    # Pulsante per resettare bonus e stati
+    if st.button("Reset Tutti i Valori"):
+        st.session_state.bonus_modifications = {}
+        st.session_state.player_states = {
+            player[0]: player[3] for player in INITIAL_DATA
+        }
+        st.rerun()
+
+    # Esegui la simulazione
+    if st.button("Avvia Simulazione"):
+        with st.spinner('Simulazione in corso...'):
+            def simulate_tournament(verbose=True, track_matches=False):
+                current_players = players.copy()
+                current_strengths = calculate_total_strengths(
+                    base_strengths,
+                    [st.session_state.bonus_modifications.get(p, default_bonus)
+                     for p, default_bonus in zip(players, default_bonuses)],
+                    [st.session_state.player_states[p] for p in players]
+                )
+
+                round_number = 1
+                num_players = len(current_players)
+
+                round_reached = defaultdict(int)
+                matches_played = []
+
+                if verbose:
+                    st.text(f"Inizio torneo con {num_players} giocatori")
+
+                while num_players > 1:
+                    current_players, current_strengths, round_matches = simulate_round(
+                        current_players,
+                        current_strengths
                     )
 
-                    # Mostra il totale punti
-                    total_points = base_strength + new_bonus
-                    st.write(f"Totale punti: {int(total_points)}")
+                    for p in current_players:
+                        round_reached[p] = round_number + 1
 
-                    if new_bonus != current_bonus:
-                        st.session_state.bonus_modifications[player] = new_bonus
+                    if track_matches:
+                        matches_played.extend(round_matches)
 
-            # Pulsante per resettare tutti i bonus
-            if st.button("Reset Bonus"):
-                st.session_state.bonus_modifications = {}
-                st.experimental_rerun()
+                    num_players = len(current_players)
+                    round_number += 1
 
-            # Esegui la simulazione
-            if st.button("Avvia Simulazione"):
-                with st.spinner('Simulazione in corso...'):
-                    def simulate_tournament(verbose=True, track_matches=False):
-                        players, strengths, _, _ = load_players(
-                            uploaded_file,
-                            st.session_state.bonus_modifications,
-                            use_cleaned=True
-                        )
-                        round_number = 1
-                        num_players = len(players)
-
-                        round_reached = defaultdict(int)
-                        matches_played = []
-
-                        if verbose:
-                            st.text(f"Inizio torneo con {num_players} giocatori")
-
-                        while num_players > 1:
-                            players, strengths, round_matches = simulate_round(players, strengths)
-
-                            for p in players:
-                                round_reached[p] = round_number + 1
-
-                            if track_matches:
-                                matches_played.extend(round_matches)
-
-                            num_players = len(players)
-                            round_number += 1
-
-                        return players[0], round_reached, matches_played
+                return current_players[0], round_reached, matches_played
 
                     # Esegui le simulazioni multiple
                     np.random.seed(int(time.time()))
