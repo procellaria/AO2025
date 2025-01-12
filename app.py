@@ -630,25 +630,25 @@ def create_web_app():
                         st.session_state.bonus_modifications[player] = new_bonus
                         st.session_state.player_states[player] = 1 if is_active else 0
 
-    # Tab 2: Tabellone
-    with tabs[1]:
-        st.subheader("Accoppiamenti Primo Turno")
-        matches = get_first_round_matches()
-        cols = st.columns(4)
-        for i, (p1, p2) in enumerate(matches):
-            col_idx = i % 4
-            with cols[col_idx]:
-                st.write(f"{p1} vs {p2}")
-
-        st.subheader("Struttura Completa del Tabellone")
-
-        # Se sono disponibili i risultati della simulazione, usa le probabilità
-        if 'round_probs' in st.session_state:
-            dot = create_tournament_graph(st.session_state.round_probs)
-        else:
-            dot = create_tournament_graph()
-
-        st.graphviz_chart(dot)
+    # # Tab 2: Tabellone
+    # with tabs[1]:
+    #     st.subheader("Accoppiamenti Primo Turno")
+    #     matches = get_first_round_matches()
+    #     cols = st.columns(4)
+    #     for i, (p1, p2) in enumerate(matches):
+    #         col_idx = i % 4
+    #         with cols[col_idx]:
+    #             st.write(f"{p1} vs {p2}")
+    #
+    #     st.subheader("Struttura Completa del Tabellone")
+    #
+    #     # Se sono disponibili i risultati della simulazione, usa le probabilità
+    #     if 'round_probs' in st.session_state:
+    #         dot = create_tournament_graph(st.session_state.round_probs)
+    #     else:
+    #         dot = create_tournament_graph()
+    #
+    #     st.graphviz_chart(dot)
 
     # Tab 3: Simulazione
     with tabs[2]:
