@@ -7,66 +7,6 @@ from collections import Counter, defaultdict
 from scipy.stats import norm
 import io
 import graphviz
-from datetime import datetime
-import json
-import os
-
-class Analytics:
-    def __init__(self, storage_path='analytics.json'):
-        self.storage_path = storage_path
-        self.data = self.load_data()
-
-    def load_data(self):
-        """Carica i dati analytics dal file"""
-        if os.path.exists(self.storage_path):
-            try:
-                with open(self.storage_path, 'r') as f:
-                    return json.load(f)
-            except:
-                return {'visits': [], 'simulations': []}
-        return {'visits': [], 'simulations': []}
-
-    def save_data(self):
-        """Salva i dati analytics nel file"""
-        with open(self.storage_path, 'w') as f:
-            json.dump(self.data, f)
-
-    def track_visit(self):
-        """Registra una nuova visita"""
-        if 'session_id' not in st.session_state:
-            st.session_state.session_id = datetime.now().isoformat()
-            self.data['visits'].append({
-                'timestamp': st.session_state.session_id,
-                'user_agent': st.get_user_agent(),
-            })
-            self.save_data()
-
-    def track_simulation(self, n_sims):
-        """Registra una nuova simulazione"""
-        self.data['simulations'].append({
-            'timestamp': datetime.now().isoformat(),
-            'session_id': st.session_state.get('session_id'),
-            'n_simulations': n_sims
-        })
-        self.save_data()
-
-    def get_stats(self):
-        """Calcola le statistiche di utilizzo"""
-        unique_sessions = len(set(v['session_id'] for v in self.data['simulations']))
-        total_simulations = len(self.data['simulations'])
-        total_visits = len(self.data['visits'])
-
-        return {
-            'unique_sessions': unique_sessions,
-            'total_simulations': total_simulations,
-            'total_visits': total_visits
-        }
-
-# Inizializza analytics
-analytics = Analytics()
-
-# Traccia la visita
-analytics.track_visit()
 
 # Dati hardcoded dal file Excel
 INITIAL_DATA = [
@@ -721,9 +661,6 @@ def create_web_app():
 
         if st.button("Avvia Simulazione"):
             with st.spinner('Simulazione in corso...'):
-                # Traccia la simulazione
-                analytics.track_simulation(n_sims)
-
                 progress_bar = st.progress(0)
 
                 players, base_strengths, default_bonuses, default_states = get_initial_data()
@@ -812,13 +749,6 @@ def create_web_app():
                     file_name="tennis_statistics.txt",
                     mime="text/plain"
                 )
-
-        if st.sidebar.checkbox("Mostra statistiche di utilizzo", False):
-            stats = analytics.get_stats()
-            st.sidebar.write("Statistiche di utilizzo:")
-            st.sidebar.write(f"Visite totali: {stats['total_visits']}")
-            st.sidebar.write(f"Sessioni uniche: {stats['unique_sessions']}")
-            st.sidebar.write(f"Simulazioni totali: {stats['total_simulations']}")
 
 if __name__ == "__main__":
     create_web_app()
