@@ -554,7 +554,7 @@ def create_web_app():
     st.title("Simulatore Australian Open 2025")
 
     # Tabs per le diverse sezioni dell'interfaccia
-    tabs = st.tabs(["Gestione Giocatori", "Tabellone", "Simulazione"])
+    tabs = st.tabs(["Gestione Giocatori", "Simulazione"])
 
 # Tab 1: Gestione Giocatori
     with tabs[0]:
@@ -651,7 +651,7 @@ def create_web_app():
     #     st.graphviz_chart(dot)
 
     # Tab 3: Simulazione
-    with tabs[2]:
+    with tabs[1]:
         st.sidebar.header("Parametri Simulazione")
         n_sims = st.sidebar.slider("Numero di simulazioni",
                                 min_value=1000,
