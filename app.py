@@ -464,8 +464,8 @@ def save_statistics_to_string(win_stats, round_probs, final_stats, semifinal_sta
 
     # Stampa le statistiche ordinate per probabilità di vittoria
     for player, stats in sorted(player_stats.items(),
-                              key=lambda x: x[1]["victory"],
-                              reverse=True):
+                                key=lambda x: x[1]["victory"],
+                                reverse=True):
         output.append(f"\n{player}:")
         output.append(f"  Vittoria torneo: {stats['victory']:.2f}% "
                      f"(CI: [{stats['victory_ci'][0]:.2f}%, {stats['victory_ci'][1]:.2f}%])")
@@ -508,39 +508,45 @@ def create_web_app():
         for section_num, section in enumerate(sections, 1):
             st.subheader(f"Sezione {section_num}")
             cols = st.columns(4)
-            for i, player in enumerate(section):
-                col_idx = i % 4
-                with cols[col_idx]:
-                    st.write(f"**{player}**")
-                    base_strength = next(p[1] for p in INITIAL_DATA if p[0] == player)
-                    default_bonus = next(p[2] for p in INITIAL_DATA if p[0] == player)
+            with st.form(key=f"form_{section_num}"):
+                for i, player in enumerate(section):
+                    col_idx = i % 4
+                    with cols[col_idx]:
+                        st.write(f"**{player}**")
+                        base_strength = next(p[1] for p in INITIAL_DATA if p[0] == player)
+                        default_bonus = next(p[2] for p in INITIAL_DATA if p[0] == player)
 
-                    current_bonus = st.session_state.bonus_modifications.get(player, default_bonus)
-                    min_allowed_bonus = -base_strength
+                        current_bonus = st.session_state.bonus_modifications.get(player, default_bonus)
+                        min_allowed_bonus = -base_strength
 
-                    new_bonus = st.number_input(
-                        "Bonus",
-                        value=int(current_bonus),
-                        min_value=int(min_allowed_bonus),
-                        step=10,
-                        format="%d",
-                        key=f"bonus_{section_num}_{i}"
-                    )
+                        new_bonus = st.number_input(
+                            "Bonus",
+                            value=int(current_bonus),
+                            min_value=int(min_allowed_bonus),
+                            step=10,
+                            format="%d",
+                            key=f"bonus_{section_num}_{i}"
+                        )
 
-                    if new_bonus != current_bonus:
+                        is_active = st.toggle(
+                            "In gioco",
+                            value=bool(st.session_state.player_states[player]),
+                            key=f"state_{section_num}_{i}"
+                        )
+
+                        total_points = base_strength + new_bonus
+                        st.write(f"Totale punti: {int(total_points)}")
+
+                    st.divider()
+
+                # Submit button for the form
+                submitted = st.form_submit_button("Salva modifiche")
+                if submitted:
+                    for i, player in enumerate(section):
+                        new_bonus = st.session_state[f"bonus_{section_num}_{i}"]
+                        is_active = st.session_state[f"state_{section_num}_{i}"]
                         st.session_state.bonus_modifications[player] = new_bonus
-
-                    is_active = st.toggle(
-                        "In gioco",
-                        value=bool(st.session_state.player_states[player]),
-                        key=f"state_{section_num}_{i}"
-                    )
-                    st.session_state.player_states[player] = 1 if is_active else 0
-
-                    total_points = base_strength + new_bonus
-                    st.write(f"Totale punti: {int(total_points)}")
-
-            st.divider()
+                        st.session_state.player_states[player] = 1 if is_active else 0
 
     # Tab 2: Tabellone
     with tabs[1]:
