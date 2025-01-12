@@ -6,6 +6,7 @@ import time
 from collections import Counter, defaultdict
 from scipy.stats import norm
 import io
+import graphviz
 
 
 # Dati hardcoded dal file Excel
@@ -147,6 +148,54 @@ def get_initial_data():
     default_bonuses = [p[2] for p in INITIAL_DATA]
     default_states = [p[3] for p in INITIAL_DATA]
     return players, base_strengths, default_bonuses, default_states
+
+def get_tournament_sections():
+    """Divide i giocatori in 16 sezioni da 8 giocatori ciascuna"""
+    players = [p[0] for p in INITIAL_DATA]
+    sections = []
+    for i in range(0, len(players), 8):
+        sections.append(players[i:i+8])
+    return sections
+
+def get_first_round_matches():
+    """Restituisce gli accoppiamenti del primo turno"""
+    players = [p[0] for p in INITIAL_DATA]
+    matches = []
+    for i in range(0, len(players), 2):
+        matches.append((players[i], players[i+1]))
+    return matches
+
+def create_tournament_graph():
+    """Crea un grafico del tabellone del torneo"""
+    dot = graphviz.Digraph()
+    dot.attr(rankdir='LR')
+
+    # Numero di giocatori per ogni turno
+    players_per_round = [128, 64, 32, 16, 8, 4, 2, 1]
+
+    # Crea i nodi per ogni turno
+    for round_num, num_players in enumerate(players_per_round):
+        with dot.subgraph() as s:
+            s.attr(rank='same')
+            for i in range(num_players):
+                node_id = f"R{round_num}_{i}"
+                if round_num == 0:
+                    # Primo turno: mostra i nomi dei giocatori
+                    player_name = INITIAL_DATA[i][0]
+                    s.node(node_id, player_name)
+                else:
+                    # Altri turni: nodi vuoti
+                    s.node(node_id, "")
+
+    # Crea gli archi tra i turni
+    for round_num in range(len(players_per_round)-1):
+        players_current = players_per_round[round_num]
+        for i in range(0, players_current, 2):
+            winner_idx = i // 2
+            dot.edge(f"R{round_num}_{i}", f"R{round_num+1}_{winner_idx}")
+            dot.edge(f"R{round_num}_{i+1}", f"R{round_num+1}_{winner_idx}")
+
+    return dot
 
 def calculate_total_strengths(base_strengths, bonuses, states):
     """Calcola le forze totali dei giocatori"""
@@ -534,78 +583,87 @@ def save_statistics_to_string(win_stats, round_probs, final_stats, semifinal_sta
 def create_web_app():
     st.title("Simulatore Australian Open 2025")
 
-    # Inizializzazione dello state
-    if 'bonus_modifications' not in st.session_state:
-        st.session_state.bonus_modifications = {}
-    if 'player_states' not in st.session_state:
-        _, _, _, default_states = get_initial_data()
-        st.session_state.player_states = {
-            player[0]: player[3] for player in INITIAL_DATA
-        }
+    # Tabs per le diverse sezioni dell'interfaccia
+    tabs = st.tabs(["Gestione Giocatori", "Tabellone", "Simulazione"])
 
-    # Sidebar per i parametri
-    st.sidebar.header("Parametri Simulazione")
-    n_sims = st.sidebar.slider("Numero di simulazioni",
-                              min_value=100,
-                              max_value=10000,
-                              value=1000,
-                              step=100)
+    # Tab 1: Gestione Giocatori
+    with tabs[0]:
+        # [Previous player management code remains the same]
+        if 'bonus_modifications' not in st.session_state:
+            st.session_state.bonus_modifications = {}
+        if 'player_states' not in st.session_state:
+            _, _, _, default_states = get_initial_data()
+            st.session_state.player_states = {
+                player[0]: player[3] for player in INITIAL_DATA
+            }
 
-    # Carica i dati iniziali
-    players, base_strengths, default_bonuses, _ = get_initial_data()
+        # Mostra i giocatori raggruppati per sezione
+        sections = get_tournament_sections()
+        for section_num, section in enumerate(sections, 1):
+            st.subheader(f"Sezione {section_num}")
+            cols = st.columns(4)
+            for i, player in enumerate(section):
+                col_idx = i % 4
+                with cols[col_idx]:
+                    st.write(f"**{player}**")
+                    # [Rest of the player management UI remains the same]
+                    base_strength = next(p[1] for p in INITIAL_DATA if p[0] == player)
+                    default_bonus = next(p[2] for p in INITIAL_DATA if p[0] == player)
 
-    # Interfaccia per la modifica dei bonus e stati
-    st.header("Gestione Giocatori")
-    st.write("Modifica bonus e stato dei giocatori")
+                    current_bonus = st.session_state.bonus_modifications.get(player, default_bonus)
+                    min_allowed_bonus = -base_strength
 
-    # Crea una griglia di 4 colonne
-    cols = st.columns(4)
-    for i, (player, base_strength, default_bonus) in enumerate(zip(players, base_strengths, default_bonuses)):
-        col_idx = i % 4
-        with cols[col_idx]:
-            st.subheader(player)
+                    new_bonus = st.number_input(
+                        "Bonus",
+                        value=int(current_bonus),
+                        min_value=int(min_allowed_bonus),
+                        step=10,
+                        format="%d",
+                        key=f"bonus_{section_num}_{i}"
+                    )
 
-            # Bonus input
-            current_bonus = st.session_state.bonus_modifications.get(player, default_bonus)
-            min_allowed_bonus = -base_strength
+                    if new_bonus != current_bonus:
+                        st.session_state.bonus_modifications[player] = new_bonus
 
-            new_bonus = st.number_input(
-                "Bonus",
-                value=int(current_bonus),
-                min_value=int(min_allowed_bonus),
-                step=10,
-                format="%d",
-                key=f"bonus_{i}"
-            )
+                    is_active = st.toggle(
+                        "In gioco",
+                        value=bool(st.session_state.player_states[player]),
+                        key=f"state_{section_num}_{i}"
+                    )
+                    st.session_state.player_states[player] = 1 if is_active else 0
 
-            if new_bonus != current_bonus:
-                st.session_state.bonus_modifications[player] = new_bonus
-
-            # Stato del giocatore (in gioco/eliminato)
-            is_active = st.toggle(
-                "In gioco",
-                value=bool(st.session_state.player_states[player]),
-                key=f"state_{i}"
-            )
-            st.session_state.player_states[player] = 1 if is_active else 0
-
-            # Mostra il totale punti
-            total_points = base_strength + new_bonus
-            st.write(f"Totale punti: {int(total_points)}")
+                    total_points = base_strength + new_bonus
+                    st.write(f"Totale punti: {int(total_points)}")
 
             st.divider()
 
-    # Pulsante per resettare bonus e stati
-    if st.button("Reset Tutti i Valori"):
-        st.session_state.bonus_modifications = {}
-        st.session_state.player_states = {
-            player[0]: player[3] for player in INITIAL_DATA
-        }
-        st.rerun()
+    # Tab 2: Tabellone
+    with tabs[1]:
+        st.subheader("Accoppiamenti Primo Turno")
+        matches = get_first_round_matches()
+        cols = st.columns(4)
+        for i, (p1, p2) in enumerate(matches):
+            col_idx = i % 4
+            with cols[col_idx]:
+                st.write(f"{p1} vs {p2}")
 
-    # Esegui la simulazione
-    if st.button("Avvia Simulazione"):
-        with st.spinner('Simulazione in corso...'):
+        st.subheader("Struttura Completa del Tabellone")
+        dot = create_tournament_graph()
+        st.graphviz_chart(dot)
+
+    # Tab 3: Simulazione
+    with tabs[2]:
+        st.sidebar.header("Parametri Simulazione")
+        n_sims = st.sidebar.slider("Numero di simulazioni",
+                                min_value=100,
+                                max_value=10000,
+                                value=1000,
+                                step=100)
+
+        if st.button("Avvia Simulazione"):
+            with st.spinner('Simulazione in corso...'):
+                # Create progress bar
+                progress_bar = st.progress(0)
             def simulate_tournament(verbose=True, track_matches=False):
                 current_players = players.copy()
                 current_strengths = calculate_total_strengths(
