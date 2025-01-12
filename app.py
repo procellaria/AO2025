@@ -586,7 +586,7 @@ def create_web_app():
         st.sidebar.header("Parametri Simulazione")
         n_sims = st.sidebar.slider("Numero di simulazioni",
                                 min_value=100,
-                                max_value=10000,
+                                max_value=20000,
                                 value=1000,
                                 step=100)
 
