@@ -229,43 +229,6 @@ def wilson_interval(count, n, confidence=0.95):
 
     return lower*100, upper*100
 
-def load_players(uploaded_file, bonus_modifications=None, use_cleaned=True):
-    """
-    Carica i dati dei giocatori dal file Excel caricato.
-
-    Args:
-        uploaded_file: File Excel caricato
-        bonus_modifications: Dizionario con modifiche ai bonus {player_name: new_bonus}
-        use_cleaned: Flag per il cleaning dei dati
-    Returns:
-        players: Lista dei nomi dei giocatori
-        total_strengths: Lista delle forze totali
-        bonuses: Lista dei bonus attuali
-        base_strengths: Lista delle forze base (ATP points)
-    """
-    df = pd.read_excel(uploaded_file, header=None)
-
-    if not use_cleaned:
-        df = df.iloc[1:, :]
-        players = [p.strip("'") for p in df[0].tolist()]
-    else:
-        players = df[0].tolist()
-
-    base_strengths = df[1].tolist()    # Coefficienti base (punti ATP)
-    bonuses = df[2].tolist()           # Bonus originali
-    states = df[3].tolist()            # Stati (1 = in gioco, 0 = eliminato)
-
-    # Applica le modifiche ai bonus se presenti
-    if bonus_modifications:
-        for i, player in enumerate(players):
-            if player in bonus_modifications:
-                bonuses[i] = bonus_modifications[player]
-
-    # Calcola i coefficienti totali considerando lo stato
-    total_strengths = [(s + b) * st for s, b, st in zip(base_strengths, bonuses, states)]
-
-    return players, total_strengths, bonuses, base_strengths
-
 def play_match(player1, player2, strength1, strength2):
     """Simula una singola partita tra due giocatori."""
     total_strength = strength1 + strength2
@@ -458,56 +421,6 @@ def save_statistics_to_file(win_stats, round_probs, final_probs, semifinal_probs
         for (p1, p2), prob, lower, upper in semifinal_probs[:10]:
             f.write(f"{p1} vs {p2}: {prob:.2f}% (CI: [{lower:.2f}%, {upper:.2f}%])\n")
 
-def run_multiple_simulations(n_simulations=1000):
-    """Esegue multiple simulazioni e calcola tutte le statistiche con intervalli di confidenza."""
-    np.random.seed(int(time.time()))
-
-    winners = []
-    all_rounds_reached = []
-    all_matches = []
-
-    for i in range(n_simulations):
-        if i % 100 == 0:
-            print(f"Simulazione {i}/{n_simulations}")
-        winner, rounds_reached, matches = simulate_tournament(verbose=False, track_matches=True)
-        winners.append(winner)
-        all_rounds_reached.append(rounds_reached)
-        all_matches.append(matches)
-
-    # Calcola statistiche vittorie con intervalli di confidenza
-    win_counts = Counter(winners)
-    win_stats = calculate_statistics_with_confidence(win_counts, n_simulations)
-
-    # Calcola statistiche turni raggiunti
-    round_probs = calculate_round_probabilities(all_rounds_reached, n_simulations)
-
-    # Calcola probabilità di finali e semifinali con intervalli di confidenza
-    final_matches = Counter(tuple(sorted(m)) for matches in all_matches
-                          for m in get_round_matches(matches, 7))
-    semifinal_matches = Counter(tuple(sorted(m)) for matches in all_matches
-                              for m in get_round_matches(matches, 6))
-
-    final_stats = calculate_statistics_with_confidence(final_matches, n_simulations)
-
-    semifinal_stats = calculate_statistics_with_confidence(semifinal_matches, n_simulations)
-
-    # Salva tutte le statistiche su file
-    save_statistics_to_file(win_stats, round_probs, final_stats, semifinal_stats, n_simulations)
-
-    # Stampa un sommario a schermo
-    print(f"\nRisultati dopo {n_simulations} simulazioni:")
-    print("Le statistiche complete sono state salvate nel file 'tennis_statistics.txt'")
-
-    print("\nTop 10 probabilità di vittoria finale (con intervalli di confidenza al 95%):")
-    for player, prob, lower, upper in win_stats[:10]:
-        print(f"{player}: {prob:.2f}% (CI: [{lower:.2f}%, {upper:.2f}%])")
-
-    print("\nTop 10 finali più probabili (con intervalli di confidenza al 95%):")
-    for (p1, p2), prob, lower, upper in final_stats[:10]:
-        print(f"{p1} vs {p2}: {prob:.2f}% (CI: [{lower:.2f}%, {upper:.2f}%])")
-
-    return win_stats, round_probs, final_stats, semifinal_stats
-
 def save_statistics_to_string(win_stats, round_probs, final_stats, semifinal_stats, n_simulations, bonus_modifications=None):
     """
     Salva tutte le statistiche con intervalli di confidenza in una stringa.
@@ -691,6 +604,12 @@ def create_web_app():
 
                 final_stats = calculate_statistics_with_confidence(final_matches, n_sims)
                 semifinal_stats = calculate_statistics_with_confidence(semifinal_matches, n_sims)
+
+                # Salva i risultati nello stato della sessione
+                st.session_state.win_stats = win_stats
+                st.session_state.round_probs = round_probs
+                st.session_state.final_stats = final_stats
+                st.session_state.semifinal_stats = semifinal_stats
 
                 # Mostra i risultati
                 st.header("Risultati della simulazione")
