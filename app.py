@@ -8,7 +8,6 @@ from scipy.stats import norm
 import io
 import graphviz
 
-
 # Dati hardcoded dal file Excel
 INITIAL_DATA = [
     ('Sinner', 11830, 1500, 1),
@@ -293,46 +292,41 @@ def simulate_round(players, strengths):
 
     return winners, winners_strengths, matches
 
-def simulate_tournament(verbose=True, track_matches=False):
+def simulate_tournament(players, base_strengths, default_bonuses, default_states, verbose=True, track_matches=False):
     """Simula un singolo torneo."""
-    players, strengths = load_players(use_cleaned=True)
-    round_number = 1
-    num_players = len(players)
+    current_players = players.copy()
+    current_strengths = calculate_total_strengths(
+        base_strengths,
+        [st.session_state.bonus_modifications.get(p, default_bonus)
+         for p, default_bonus in zip(players, default_bonuses)],
+        [st.session_state.player_states[p] for p in players]
+    )
 
-    # Dizionari per tracciare i progressi
+    round_number = 1
+    num_players = len(current_players)
+
     round_reached = defaultdict(int)
-    matches_played = []  # Lista di tutte le partite giocate
+    matches_played = []
 
     if verbose:
-        print(f"Inizio torneo con {num_players} giocatori")
+        st.text(f"Inizio torneo con {num_players} giocatori")
 
     while num_players > 1:
-        if verbose:
-            print(f"\nTurno {round_number}")
-            print("Partite in corso...")
+        current_players, current_strengths, round_matches = simulate_round(
+            current_players,
+            current_strengths
+        )
 
-        players, strengths, round_matches = simulate_round(players, strengths)
-
-        # Aggiorna le statistiche
-        for p in players:
+        for p in current_players:
             round_reached[p] = round_number + 1
 
         if track_matches:
             matches_played.extend(round_matches)
 
-        num_players = len(players)
-
-        if verbose:
-            print("Vincitori del turno:")
-            for i, player in enumerate(players, 1):
-                print(f"{i}. {player}")
-
+        num_players = len(current_players)
         round_number += 1
 
-    if verbose:
-        print(f"\nVincitore del torneo: {players[0]}")
-
-    return players[0], round_reached, matches_played
+    return current_players[0], round_reached, matches_played
 
 def calculate_round_probabilities(all_rounds_reached, n_simulations):
     """Calcola le probabilità di raggiungere ogni turno per ogni giocatore."""
@@ -588,7 +582,6 @@ def create_web_app():
 
     # Tab 1: Gestione Giocatori
     with tabs[0]:
-        # [Previous player management code remains the same]
         if 'bonus_modifications' not in st.session_state:
             st.session_state.bonus_modifications = {}
         if 'player_states' not in st.session_state:
@@ -606,7 +599,6 @@ def create_web_app():
                 col_idx = i % 4
                 with cols[col_idx]:
                     st.write(f"**{player}**")
-                    # [Rest of the player management UI remains the same]
                     base_strength = next(p[1] for p in INITIAL_DATA if p[0] == player)
                     default_bonus = next(p[2] for p in INITIAL_DATA if p[0] == player)
 
@@ -662,42 +654,9 @@ def create_web_app():
 
         if st.button("Avvia Simulazione"):
             with st.spinner('Simulazione in corso...'):
-                # Create progress bar
                 progress_bar = st.progress(0)
-            def simulate_tournament(verbose=True, track_matches=False):
-                current_players = players.copy()
-                current_strengths = calculate_total_strengths(
-                    base_strengths,
-                    [st.session_state.bonus_modifications.get(p, default_bonus)
-                     for p, default_bonus in zip(players, default_bonuses)],
-                    [st.session_state.player_states[p] for p in players]
-                )
 
-                round_number = 1
-                num_players = len(current_players)
-
-                round_reached = defaultdict(int)
-                matches_played = []
-
-                if verbose:
-                    st.text(f"Inizio torneo con {num_players} giocatori")
-
-                while num_players > 1:
-                    current_players, current_strengths, round_matches = simulate_round(
-                        current_players,
-                        current_strengths
-                    )
-
-                    for p in current_players:
-                        round_reached[p] = round_number + 1
-
-                    if track_matches:
-                        matches_played.extend(round_matches)
-
-                    num_players = len(current_players)
-                    round_number += 1
-
-                return current_players[0], round_reached, matches_played
+                players, base_strengths, default_bonuses, default_states = get_initial_data()
 
                 # Esegui le simulazioni multiple
                 np.random.seed(int(time.time()))
@@ -706,13 +665,14 @@ def create_web_app():
                 all_rounds_reached = []
                 all_matches = []
 
-                progress_bar = st.progress(0)
-
                 for i in range(n_sims):
                     if i % 100 == 0:
-                        progress_bar.progress(i/n_sims)
+                        progress_bar.progress(i / n_sims)
 
-                    winner, rounds_reached, matches = simulate_tournament(verbose=False, track_matches=True)
+                    winner, rounds_reached, matches = simulate_tournament(
+                        players, base_strengths, default_bonuses, default_states,
+                        verbose=False, track_matches=True
+                    )
                     winners.append(winner)
                     all_rounds_reached.append(rounds_reached)
                     all_matches.append(matches)
@@ -766,7 +726,7 @@ def create_web_app():
                     final_stats,
                     semifinal_stats,
                     n_sims,
-                    bonus_modifications
+                    st.session_state.bonus_modifications
                 )
 
                 # Offri il download del file completo
@@ -776,7 +736,6 @@ def create_web_app():
                     file_name="tennis_statistics.txt",
                     mime="text/plain"
                 )
-
 
 if __name__ == "__main__":
     create_web_app()
