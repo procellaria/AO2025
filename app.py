@@ -493,79 +493,79 @@ def create_web_app():
     # Tabs per le diverse sezioni dell'interfaccia
     tabs = st.tabs(["Gestione Giocatori", "Tabellone", "Simulazione"])
 
-    # Tab 1: Gestione Giocatori
-    with tabs[0]:
-        if 'bonus_modifications' not in st.session_state:
-            st.session_state.bonus_modifications = {}
-        if 'player_states' not in st.session_state:
-            _, _, _, default_states = get_initial_data()
-            st.session_state.player_states = {
-                player[0]: player[3] for player in INITIAL_DATA
-            }
+# Tab 1: Gestione Giocatori
+with tabs[0]:
+    if 'bonus_modifications' not in st.session_state:
+        st.session_state.bonus_modifications = {}
+    if 'player_states' not in st.session_state:
+        _, _, _, default_states = get_initial_data()
+        st.session_state.player_states = {
+            player[0]: player[3] for player in INITIAL_DATA
+        }
 
-        # Mostra i giocatori raggruppati per sezione
-        sections = get_tournament_sections()
-        for section_num, section in enumerate(sections, 1):
-            st.subheader(f"Sezione {section_num}")
+    # Mostra i giocatori raggruppati per sezione
+    sections = get_tournament_sections()
+    for section_num, section in enumerate(sections, 1):
+        st.subheader(f"Sezione {section_num}")
+
+        # Crea un singolo form per sezione
+        with st.form(key=f"section_form_{section_num}"):
             cols = st.columns(4)
-            with st.form(key=f"form_{section_num}"):
+            for i, player in enumerate(section):
+                col_idx = i % 4
+                with cols[col_idx]:
+                    st.write(f"**{player}**")
+                    base_strength = next(p[1] for p in INITIAL_DATA if p[0] == player)
+                    default_bonus = next(p[2] for p in INITIAL_DATA if p[0] == player)
+                    default_state = next(p[3] for p in INITIAL_DATA if p[0] == player)
+
+                    current_bonus = st.session_state.bonus_modifications.get(player, default_bonus)
+                    min_allowed_bonus = -base_strength
+
+                    if default_state == 1:
+                        new_bonus = st.number_input(
+                            "Bonus",
+                            value=int(current_bonus),
+                            min_value=int(min_allowed_bonus),
+                            step=10,
+                            format="%d",
+                            key=f"bonus_{section_num}_{i}"
+                        )
+
+                        is_active = st.toggle(
+                            "In gioco",
+                            value=bool(st.session_state.player_states[player]),
+                            key=f"state_{section_num}_{i}"
+                        )
+                    else:
+                        new_bonus = st.number_input(
+                            "Bonus",
+                            value=int(current_bonus),
+                            min_value=int(min_allowed_bonus),
+                            step=10,
+                            format="%d",
+                            key=f"bonus_{section_num}_{i}",
+                            disabled=True
+                        )
+
+                        is_active = st.toggle(
+                            "In gioco",
+                            value=False,
+                            key=f"state_{section_num}_{i}",
+                            disabled=True
+                        )
+
+                    total_points = base_strength + new_bonus
+                    st.write(f"Totale punti: {int(total_points)}")
+
+            # Submit button per il form della sezione
+            submitted = st.form_submit_button("Salva modifiche sezione")
+            if submitted:
                 for i, player in enumerate(section):
-                    col_idx = i % 4
-                    with cols[col_idx]:
-                        st.write(f"**{player}**")
-                        base_strength = next(p[1] for p in INITIAL_DATA if p[0] == player)
-                        default_bonus = next(p[2] for p in INITIAL_DATA if p[0] == player)
-                        default_state = next(p[3] for p in INITIAL_DATA if p[0] == player)
-
-                        current_bonus = st.session_state.bonus_modifications.get(player, default_bonus)
-                        min_allowed_bonus = -base_strength
-
-                        if default_state == 1:
-                            new_bonus = st.number_input(
-                                "Bonus",
-                                value=int(current_bonus),
-                                min_value=int(min_allowed_bonus),
-                                step=10,
-                                format="%d",
-                                key=f"bonus_{section_num}_{i}"
-                            )
-
-                            is_active = st.toggle(
-                                "In gioco",
-                                value=bool(st.session_state.player_states[player]),
-                                key=f"state_{section_num}_{i}"
-                            )
-                        else:
-                            new_bonus = st.number_input(
-                                "Bonus",
-                                value=int(current_bonus),
-                                min_value=int(min_allowed_bonus),
-                                step=10,
-                                format="%d",
-                                key=f"bonus_{section_num}_{i}",
-                                disabled=True
-                            )
-
-                            is_active = st.toggle(
-                                "In gioco",
-                                value=False,
-                                key=f"state_{section_num}_{i}",
-                                disabled=True
-                            )
-
-                        total_points = base_strength + new_bonus
-                        st.write(f"Totale punti: {int(total_points)}")
-
-                    st.divider()
-
-                # Submit button for the form
-                submitted = st.form_submit_button("Salva modifiche")
-                if submitted:
-                    for i, player in enumerate(section):
-                        new_bonus = st.session_state[f"bonus_{section_num}_{i}"]
-                        is_active = st.session_state[f"state_{section_num}_{i}"]
-                        st.session_state.bonus_modifications[player] = new_bonus
-                        st.session_state.player_states[player] = 1 if is_active else 0
+                    new_bonus = st.session_state[f"bonus_{section_num}_{i}"]
+                    is_active = st.session_state[f"state_{section_num}_{i}"]
+                    st.session_state.bonus_modifications[player] = new_bonus
+                    st.session_state.player_states[player] = 1 if is_active else 0
 
     # Tab 2: Tabellone
     with tabs[1]:
