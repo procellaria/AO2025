@@ -293,11 +293,37 @@ def wilson_interval(count, n, confidence=0.95):
     return lower*100, upper*100
 
 def play_match(player1, player2, strength1, strength2):
-    """Simula una singola partita tra due giocatori."""
-    total_strength = strength1 + strength2
-    p1 = strength1 / total_strength
+    """
+    Simula una singola partita tra due giocatori, gestendo i casi in cui uno o entrambi
+    i giocatori sono stati eliminati (stato = 0).
 
-    if np.random.random() < p1:
+    Args:
+        player1: nome del primo giocatore
+        player2: nome del secondo giocatore
+        strength1: forza totale del primo giocatore (già moltiplicata per lo stato)
+        strength2: forza totale del secondo giocatore (già moltiplicata per lo stato)
+
+    Returns:
+        tuple: (vincitore, forza del vincitore)
+    """
+    # Caso 1: entrambi i giocatori sono ancora in gioco (strength > 0)
+    if strength1 > 0 and strength2 > 0:
+        total_strength = strength1 + strength2
+        p1 = strength1 / total_strength
+
+        if np.random.random() < p1:
+            return player1, strength1
+        return player2, strength2
+
+    # Caso 2: solo un giocatore è ancora in gioco
+    if strength1 > 0:
+        return player1, strength1
+    if strength2 > 0:
+        return player2, strength2
+
+    # Caso 3: entrambi i giocatori sono stati eliminati
+    # Scelta casuale tra i due giocatori
+    if np.random.random() < 0.5:
         return player1, strength1
     return player2, strength2
 
