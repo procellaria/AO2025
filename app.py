@@ -78,7 +78,7 @@ INITIAL_DATA = [
     ('Basavareddy', 566, 0, 1),
     ('Faria', 481, 0, 1),
     ('Kotov', 612, 0, 1),
-    ('Onclin', 242, 0, 1),
+    ('Onclin', 242, 0, 0),
     ('Opelka', 341, 100, 1),
     ('Nagal', 635, 0, 0),
     ('Macháč', 1805, 0, 1),
@@ -123,7 +123,7 @@ INITIAL_DATA = [
     ("O'Connell", 770, 0, 1),
     ('Paul', 3145, 0, 1),
     ('Humbert', 2765, 0, 1),
-    ('Gigante', 403, 0, 1),
+    ('Gigante', 403, 0, 0),
     ('Habib', 264, 50, 1),
     ('Bu', 784, 0, 0),
     ('Walton', 636, 0, 1),
@@ -136,7 +136,7 @@ INITIAL_DATA = [
     ('Kyrgios', 0, 100, 1),
     ('Martínez', 1220, 0, 1),
     ('Darderi', 1198, 0, 1),
-    ('Pouille', 575, 0, 1),
+    ('Pouille', 575, 0, 0),
     ('Zverev', 7635, 500, 1),
 ]
 
@@ -164,16 +164,38 @@ def get_first_round_matches():
         matches.append((players[i], players[i+1]))
     return matches
 
-def create_tournament_graph():
-    """Crea un grafico del tabellone del torneo"""
+def create_tournament_graph(round_probabilities=None):
+    """
+    Crea un grafico del tabellone del torneo con:
+    - Nodi rettangolari
+    - Connessioni ad angolo retto
+    - Spessore delle linee proporzionale alle probabilità (se fornite)
+
+    Args:
+        round_probabilities: lista di tuple (player, stats) con le probabilità per ogni turno
+    """
     dot = graphviz.Digraph()
-    dot.attr(rankdir='LR')
+    dot.attr(rankdir='LR', splines='ortho')
+
+    # Definisci lo stile dei nodi
+    dot.attr('node', shape='rectangle', style='filled',
+             fillcolor='white', width='2', height='0.5')
 
     # Numero di giocatori per ogni turno
     players_per_round = [128, 64, 32, 16, 8, 4, 2, 1]
+    round_names = ["R128", "R64", "R32", "R16", "QF", "SF", "F", "W"]
+
+    # Dizionario per memorizzare le probabilità dei giocatori per ogni turno
+    player_probs = {}
+    if round_probabilities:
+        for player, stats in round_probabilities:
+            # Converti le percentuali in decimali
+            player_probs[player] = {
+                key: float(value) / 100.0 for key, value in stats.items()
+            }
 
     # Crea i nodi per ogni turno
-    for round_num, num_players in enumerate(players_per_round):
+    for round_num, (num_players, round_name) in enumerate(zip(players_per_round, round_names)):
         with dot.subgraph() as s:
             s.attr(rank='same')
             for i in range(num_players):
@@ -183,16 +205,57 @@ def create_tournament_graph():
                     player_name = INITIAL_DATA[i][0]
                     s.node(node_id, player_name)
                 else:
-                    # Altri turni: nodi vuoti
-                    s.node(node_id, "")
+                    # Altri turni: nodi vuoti con il nome del turno
+                    s.node(node_id, round_name)
 
-    # Crea gli archi tra i turni
-    for round_num in range(len(players_per_round)-1):
-        players_current = players_per_round[round_num]
-        for i in range(0, players_current, 2):
-            winner_idx = i // 2
-            dot.edge(f"R{round_num}_{i}", f"R{round_num+1}_{winner_idx}")
-            dot.edge(f"R{round_num}_{i+1}", f"R{round_num+1}_{winner_idx}")
+    # Mappa i nomi dei turni alle probabilità
+    round_to_prob = {
+        0: "Ottavi di finale",
+        1: "Quarti di finale",
+        2: "Semifinale",
+        3: "Finale",
+        4: "Vittoria"
+    }
+
+    # Crea gli archi tra i turni con spessore proporzionale alle probabilità
+    if round_probabilities:
+        max_penwidth = 5.0
+        min_penwidth = 0.5
+
+        for round_num in range(len(players_per_round)-1):
+            players_current = players_per_round[round_num]
+            for i in range(0, players_current, 2):
+                winner_idx = i // 2
+
+                if round_num == 0:
+                    player1 = INITIAL_DATA[i][0]
+                    player2 = INITIAL_DATA[i+1][0]
+
+                    prob1 = player_probs.get(player1, {}).get(round_to_prob[round_num], 0)
+                    prob2 = player_probs.get(player2, {}).get(round_to_prob[round_num], 0)
+
+                    penwidth1 = min_penwidth + (max_penwidth - min_penwidth) * prob1
+                    penwidth2 = min_penwidth + (max_penwidth - min_penwidth) * prob2
+
+                    dot.edge(f"R{round_num}_{i}", f"R{round_num+1}_{winner_idx}",
+                            penwidth=str(penwidth1))
+                    dot.edge(f"R{round_num}_{i+1}", f"R{round_num+1}_{winner_idx}",
+                            penwidth=str(penwidth2))
+                else:
+                    # Per gli altri turni usiamo uno spessore standard
+                    dot.edge(f"R{round_num}_{i}", f"R{round_num+1}_{winner_idx}",
+                            penwidth=str(min_penwidth))
+                    dot.edge(f"R{round_num}_{i+1}", f"R{round_num+1}_{winner_idx}",
+                            penwidth=str(min_penwidth))
+
+    else:
+        # Se non ci sono probabilità, usa linee di spessore uniforme
+        for round_num in range(len(players_per_round)-1):
+            players_current = players_per_round[round_num]
+            for i in range(0, players_current, 2):
+                winner_idx = i // 2
+                dot.edge(f"R{round_num}_{i}", f"R{round_num+1}_{winner_idx}")
+                dot.edge(f"R{round_num}_{i+1}", f"R{round_num+1}_{winner_idx}")
 
     return dot
 
