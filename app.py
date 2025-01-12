@@ -135,7 +135,7 @@ INITIAL_DATA = [
     ('Fearnley', 632, 0, 1),
     ('Kyrgios', 0, 100, 1),
     ('Martínez', 1220, 0, 1),
-    ('Darderi', 1198, 0, 1),
+    ('Darderi', 1198, 0, 0),
     ('Pouille', 575, 0, 0),
     ('Zverev', 7635, 500, 1),
 ]
@@ -718,7 +718,7 @@ def create_web_app():
                     results_data,
                     columns=['#', 'Giocatore', 'Probabilità (%)', 'CI Lower (%)', 'CI Upper (%)']
                 )
-                st.dataframe(results_df)
+                st.dataframe(results_df, hide_index=True)
 
                 # Finali più probabili
                 st.subheader("Top 10 finali più probabili")
@@ -730,7 +730,7 @@ def create_web_app():
                     finals_data,
                     columns=['#', 'Finale', 'Probabilità (%)', 'CI Lower (%)', 'CI Upper (%)']
                 )
-                st.dataframe(finals_df)
+                st.dataframe(finals_df, hide_index=True)
 
                 # Genera il file di statistiche
                 stats_content = save_statistics_to_string(
