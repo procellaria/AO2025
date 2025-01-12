@@ -80,12 +80,12 @@ INITIAL_DATA = [
     ('Kotov', 612, 0, 1),
     ('Onclin', 242, 0, 1),
     ('Opelka', 341, 100, 1),
-    ('Nagal', 635, 0, 1),
+    ('Nagal', 635, 0, 0),
     ('Macháč', 1805, 0, 1),
     ('Lehečka', 1660, 0, 1),
-    ('Tu', 342, 0, 1),
+    ('Tu', 342, 0, 0),
     ('Gaston', 703, 0, 1),
-    ('Jasika', 323, 0, 1),
+    ('Jasika', 323, 0, 0),
     ('Goffin', 1029, 0, 1),
     ('Bonzi', 819, 150, 1),
     ('Fognini', 637, 0, 1),
@@ -106,8 +106,8 @@ INITIAL_DATA = [
     ('Dougaz', 254, 0, 1),
     ('Shevchenko', 743, 0, 1),
     ('Alcaraz', 7010, 1000, 1),
-    ('Ruud', 4210, 500, 1),
-    ('Munar', 922, 0, 1),
+    ('Ruud', 4210, 250, 1),
+    ('Munar', 922, 0, 0),
     ('Basilashvili', 273, 0, 1),
     ('Menšík', 1162, 150, 1),
     ('Shang', 1115, 0, 1),
@@ -119,16 +119,16 @@ INITIAL_DATA = [
     ('Duckworth', 637, 0, 1),
     ('Stricker', 173, 0, 1),
     ('Nishikori', 743, 0, 1),
-    ('Monteiro', 566, 0, 1),
+    ('Monteiro', 566, 0, 0),
     ("O'Connell", 770, 0, 1),
     ('Paul', 3145, 0, 1),
     ('Humbert', 2765, 0, 1),
     ('Gigante', 403, 0, 1),
-    ('Habib', 264, 0, 1),
-    ('Bu', 784, 0, 1),
+    ('Habib', 264, 50, 1),
+    ('Bu', 784, 0, 0),
     ('Walton', 636, 0, 1),
     ('Halys', 756, 0, 1),
-    ('Virtanen', 627, 0, 1),
+    ('Virtanen', 627, 0, 0),
     ('Fils', 2280, 0, 1),
     ('Báez', 1690, 0, 1),
     ('Cazaux', 732, 0, 1),
@@ -515,24 +515,43 @@ def create_web_app():
                         st.write(f"**{player}**")
                         base_strength = next(p[1] for p in INITIAL_DATA if p[0] == player)
                         default_bonus = next(p[2] for p in INITIAL_DATA if p[0] == player)
+                        default_state = next(p[3] for p in INITIAL_DATA if p[0] == player)
 
                         current_bonus = st.session_state.bonus_modifications.get(player, default_bonus)
                         min_allowed_bonus = -base_strength
 
-                        new_bonus = st.number_input(
-                            "Bonus",
-                            value=int(current_bonus),
-                            min_value=int(min_allowed_bonus),
-                            step=10,
-                            format="%d",
-                            key=f"bonus_{section_num}_{i}"
-                        )
+                        if default_state == 1:
+                            new_bonus = st.number_input(
+                                "Bonus",
+                                value=int(current_bonus),
+                                min_value=int(min_allowed_bonus),
+                                step=10,
+                                format="%d",
+                                key=f"bonus_{section_num}_{i}"
+                            )
 
-                        is_active = st.toggle(
-                            "In gioco",
-                            value=bool(st.session_state.player_states[player]),
-                            key=f"state_{section_num}_{i}"
-                        )
+                            is_active = st.toggle(
+                                "In gioco",
+                                value=bool(st.session_state.player_states[player]),
+                                key=f"state_{section_num}_{i}"
+                            )
+                        else:
+                            new_bonus = st.number_input(
+                                "Bonus",
+                                value=int(current_bonus),
+                                min_value=int(min_allowed_bonus),
+                                step=10,
+                                format="%d",
+                                key=f"bonus_{section_num}_{i}",
+                                disabled=True
+                            )
+
+                            is_active = st.toggle(
+                                "In gioco",
+                                value=False,
+                                key=f"state_{section_num}_{i}",
+                                disabled=True
+                            )
 
                         total_points = base_strength + new_bonus
                         st.write(f"Totale punti: {int(total_points)}")
