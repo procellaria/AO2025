@@ -578,17 +578,23 @@ def create_web_app():
                 st.write(f"{p1} vs {p2}")
 
         st.subheader("Struttura Completa del Tabellone")
-        dot = create_tournament_graph()
+
+        # Se sono disponibili i risultati della simulazione, usa le probabilità
+        if 'round_probs' in st.session_state:
+            dot = create_tournament_graph(st.session_state.round_probs)
+        else:
+            dot = create_tournament_graph()
+
         st.graphviz_chart(dot)
 
     # Tab 3: Simulazione
     with tabs[2]:
         st.sidebar.header("Parametri Simulazione")
         n_sims = st.sidebar.slider("Numero di simulazioni",
-                                min_value=100,
+                                min_value=1000,
                                 max_value=20000,
-                                value=1000,
-                                step=100)
+                                value=4000,
+                                step=200)
 
         if st.button("Avvia Simulazione"):
             with st.spinner('Simulazione in corso...'):
