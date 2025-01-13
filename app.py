@@ -525,6 +525,20 @@ def save_statistics_to_string(win_stats, round_probs, final_stats, semifinal_sta
             output.append(f"{player}: {bonus}")
 
     output.append("=" * 50)
+
+    # Aggiungi la tabella Top 10 probabilità di vittoria
+    output.append("\nTOP 10 PROBABILITÀ DI VITTORIA")
+    output.append("-" * 30)
+    output.append("\n{:<4} {:<20} {:<12} {:<20}".format(
+        "#", "Giocatore", "Prob. (%)", "Int. Confidenza (%)")
+    )
+    output.append("-" * 60)
+
+    for i, (player, prob, lower, upper) in enumerate(win_stats[:10], 1):
+        output.append("{:<4} {:<20} {:<12.2f} [{:.2f}, {:.2f}]".format(
+            i, player, prob, lower, upper)
+        )
+
     output.append("\nSTATISTICHE PER GIOCATORE")
     output.append("-" * 30)
 
