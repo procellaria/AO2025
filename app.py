@@ -120,7 +120,7 @@ INITIAL_DATA = [
     ('Stricker', 173, 0, 0),
     ('Nishikori', 743, 0, 1),
     ('Monteiro', 566, 0, 0),
-    ("O'Connell", 770, 0, 1),
+    ("O'Connell", 770, 0, 0),
     ('Paul', 3145, 0, 1),
     ('Humbert', 2765, 0, 1),
     ('Gigante', 403, 0, 0),
