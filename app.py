@@ -630,7 +630,7 @@ def create_web_app():
                                 "Bonus",
                                 value=int(current_bonus),
                                 min_value=int(min_allowed_bonus),
-                                step=10,
+                                step=50,
                                 format="%d",
                                 key=f"bonus_{section_num}_{i}"
                             )
@@ -645,7 +645,7 @@ def create_web_app():
                                 "Bonus",
                                 value=int(current_bonus),
                                 min_value=int(min_allowed_bonus),
-                                step=10,
+                                step=50,
                                 format="%d",
                                 key=f"bonus_{section_num}_{i}",
                                 disabled=True
