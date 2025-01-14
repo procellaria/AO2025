@@ -938,7 +938,7 @@ def create_web_app():
                     if i % 100 == 0:
                         progress_bar.progress(i / n_sims)
 
-                    winner, rounds_reached, matches = simulate_tournament_with_calibration(
+                    winner, rounds_reached, matches = simulate_tournament(
                         players, base_strengths, default_bonuses, default_states,
                         verbose=False, track_matches=True
                     )
