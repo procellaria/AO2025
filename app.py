@@ -292,19 +292,46 @@ def wilson_interval(count, n, confidence=0.95):
 
     return lower*100, upper*100
 
+def update_winner_strength(winner_strength, loser_strength):
+    """
+    Aggiorna la forza del vincitore in base alla formula specificata.
+
+    Args:
+        winner_strength: forza del giocatore vincente
+        loser_strength: forza del giocatore perdente
+
+    Returns:
+        float: nuova forza del vincitore
+    """
+    if winner_strength <= 0:
+        return winner_strength
+
+    # Per i giocatori inattivi (loser_strength = 0), usiamo la loro forza base originale
+    # che è il valore prima di essere moltiplicato per lo stato
+    if loser_strength <= 0:
+        # Cerchiamo il giocatore nella lista INITIAL_DATA
+        for player in INITIAL_DATA:
+            if player[1] + player[2] == loser_strength / 0:  # Ricostruiamo la forza originale
+                loser_strength = player[1] + player[2]
+                break
+
+    strength_ratio = loser_strength / winner_strength
+    update = 0.3 * (winner_strength + loser_strength) / (1 + np.exp(-1 * (strength_ratio - 1)))
+    return winner_strength + update
+
 def play_match(player1, player2, strength1, strength2):
     """
     Simula una singola partita tra due giocatori, gestendo i casi in cui uno o entrambi
-    i giocatori sono stati eliminati (stato = 0).
+    i giocatori sono stati eliminati (stato = 0). Aggiorna la forza del vincitore.
 
     Args:
         player1: nome del primo giocatore
         player2: nome del secondo giocatore
-        strength1: forza totale del primo giocatore (già moltiplicata per lo stato)
-        strength2: forza totale del secondo giocatore (già moltiplicata per lo stato)
+        strength1: forza totale del primo giocatore (forza base + bonus) * stato
+        strength2: forza totale del secondo giocatore (forza base + bonus) * stato
 
     Returns:
-        tuple: (vincitore, forza del vincitore)
+        tuple: (vincitore, forza aggiornata del vincitore)
     """
     # Caso 1: entrambi i giocatori sono ancora in gioco (strength > 0)
     if strength1 > 0 and strength2 > 0:
@@ -312,19 +339,28 @@ def play_match(player1, player2, strength1, strength2):
         p1 = strength1 / total_strength
 
         if np.random.random() < p1:
-            return player1, strength1
-        return player2, strength2
+            updated_strength = update_winner_strength(strength1, strength2)
+            return player1, updated_strength
+        updated_strength = update_winner_strength(strength2, strength1)
+        return player2, updated_strength
 
     # Caso 2: solo un giocatore è ancora in gioco
     if strength1 > 0:
-        return player1, strength1
+        # Aggiorniamo la forza anche se vinciamo contro un giocatore inattivo
+        updated_strength = update_winner_strength(strength1, strength2)
+        return player1, updated_strength
     if strength2 > 0:
-        return player2, strength2
+        # Aggiorniamo la forza anche se vinciamo contro un giocatore inattivo
+        updated_strength = update_winner_strength(strength2, strength1)
+        return player2, updated_strength
 
     # Caso 3: entrambi i giocatori sono stati eliminati
-    # Scelta casuale tra i due giocatori
+    # Scelta casuale tra i due giocatori, ma non aggiorniamo la forza
+    # poiché entrambi sono già stati eliminati
     if np.random.random() < 0.5:
+        updated_strength = update_winner_strength(strength1, strength2)
         return player1, strength1
+    updated_strength = update_winner_strength(strength2, strength1)    
     return player2, strength2
 
 def simulate_round(players, strengths):
