@@ -393,7 +393,7 @@ def update_winner_strength(winner_strength, loser_strength):
         return winner_strength
 
     strength_ratio = loser_strength / winner_strength
-    update = 0.2 * (winner_strength + loser_strength) / (1 + np.exp(-1 * (strength_ratio - 1)))
+    update = 0.15 * (winner_strength + loser_strength) / (1 + np.exp(-1 * (strength_ratio - 1)))
     return winner_strength + update
 
 def play_match(player1, player2, strength1, strength2):
