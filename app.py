@@ -292,6 +292,91 @@ def wilson_interval(count, n, confidence=0.95):
 
     return lower*100, upper*100
 
+def evaluate_parameter(update_factor, players, base_strengths, bonuses, states):
+    """
+    Valuta quanto bene un particolare valore del parametro di aggiornamento
+    predice i risultati reali (giocatori eliminati).
+
+    Returns:
+        float: punteggio di errore (più basso è meglio)
+    """
+    # Crea copie dei dati per non modificare gli originali
+    current_strengths = calculate_total_strengths(base_strengths, bonuses, states)
+    eliminated_players = [(p, i) for i, (p, s) in enumerate(zip(players, states)) if s == 0]
+    error_score = 0
+
+    for eliminated_player, idx in eliminated_players:
+        # Per ogni giocatore eliminato, calcoliamo la probabilità che aveva
+        # di essere eliminato dato il suo percorso nel tabellone
+        opponents = get_player_opponents(eliminated_player, players)
+        if not opponents:  # Se non troviamo gli avversari, skip
+            continue
+
+        # Ricostruisci il percorso fino all'eliminazione
+        path_probability = 1.0
+        for opponent in opponents:
+            opp_idx = players.index(opponent)
+            # Usa le forze attuali per calcolare la probabilità
+            p_win = current_strengths[idx] / (current_strengths[idx] + current_strengths[opp_idx])
+            path_probability *= (1 - p_win)  # Probabilità di perdere
+
+            # Aggiorna la forza usando il parametro da testare
+            if states[opp_idx] == 1:  # L'avversario ha vinto ed è ancora in gioco
+                strength_ratio = current_strengths[idx] / current_strengths[opp_idx]
+                update = update_factor * (current_strengths[opp_idx] + current_strengths[idx]) / \
+                        (1 + np.exp(-1 * (strength_ratio - 1)))
+                current_strengths[opp_idx] += update
+
+        # L'errore è quanto la nostra predizione si discosta dalla realtà (eliminazione)
+        error_score += (1 - path_probability) ** 2
+
+    return error_score
+
+def get_player_opponents(player, players):
+    """
+    Determina gli avversari affrontati da un giocatore nel tabellone.
+    Restituisce la lista degli avversari in ordine cronologico.
+    """
+    # Questa è una versione semplificata - andrebbe implementata usando
+    # la struttura reale del tabellone
+    player_idx = players.index(player)
+    section_start = (player_idx // 8) * 8
+    potential_opponents = players[section_start:section_start + 8]
+    # Rimuovi il giocatore stesso
+    return [p for p in potential_opponents if p != player]
+
+def calibrate_update_factor(players, base_strengths, bonuses, states):
+    """
+    Trova il miglior valore per il fattore di aggiornamento.
+
+    Returns:
+        float: il valore ottimale del fattore di aggiornamento
+    """
+    # Definisci una griglia di valori da testare
+    test_values = np.linspace(0.1, 0.5, 20)
+    best_score = float('inf')
+    best_factor = 0.3  # valore di default
+
+    for factor in test_values:
+        score = evaluate_parameter(factor, players, base_strengths, bonuses, states)
+        if score < best_score:
+            best_score = score
+            best_factor = factor
+
+    return best_factor
+
+def update_winner_strength_calibrated(winner_strength, loser_strength, update_factor):
+    """
+    Versione calibrata della funzione di aggiornamento della forza.
+    """
+    if winner_strength <= 0:
+        return winner_strength
+
+    strength_ratio = loser_strength / winner_strength
+    update = update_factor * (winner_strength + loser_strength) / \
+            (1 + np.exp(-1 * (strength_ratio - 1)))
+    return winner_strength + update
+
 def update_winner_strength(winner_strength, loser_strength):
     """
     Aggiorna la forza del vincitore in base alla formula specificata.
@@ -355,6 +440,50 @@ def play_match(player1, player2, strength1, strength2):
     updated_strength = update_winner_strength(strength2, strength1)
     return player2, strength2
 
+def play_match_calibrated(player1, player2, strength1, strength2, update_factor):
+    """
+    Simula una singola partita tra due giocatori, gestendo i casi in cui uno o entrambi
+    i giocatori sono stati eliminati (stato = 0). Aggiorna la forza del vincitore.
+
+    Args:
+        player1: nome del primo giocatore
+        player2: nome del secondo giocatore
+        strength1: forza totale del primo giocatore (forza base + bonus) * stato
+        strength2: forza totale del secondo giocatore (forza base + bonus) * stato
+
+    Returns:
+        tuple: (vincitore, forza aggiornata del vincitore)
+    """
+    # Caso 1: entrambi i giocatori sono ancora in gioco (strength > 0)
+    if strength1 > 0 and strength2 > 0:
+        total_strength = strength1 + strength2
+        p1 = strength1 / total_strength
+
+        if np.random.random() < p1:
+            updated_strength = update_winner_strength_calibrated(strength1, strength2, update_factor)
+            return player1, updated_strength
+        updated_strength = update_winner_strength_calibrated(strength2, strength1, update_factor)
+        return player2, updated_strength
+
+    # Caso 2: solo un giocatore è ancora in gioco
+    if strength1 > 0:
+        # Aggiorniamo la forza anche se vinciamo contro un giocatore inattivo
+        updated_strength = update_winner_strength_calibrated(strength1, strength2, update_factor)
+        return player1, updated_strength
+    if strength2 > 0:
+        # Aggiorniamo la forza anche se vinciamo contro un giocatore inattivo
+        updated_strength = update_winner_strength_calibrated(strength2, strength1, update_factor)
+        return player2, updated_strength
+
+    # Caso 3: entrambi i giocatori sono stati eliminati
+    # Scelta casuale tra i due giocatori, ma non aggiorniamo la forza
+    # poiché entrambi sono già stati eliminati
+    if np.random.random() < 0.5:
+        updated_strength = update_winner_strength_calibrated(strength1, strength2, update_factor)
+        return player1, strength1
+    updated_strength = update_winner_strength_calibrated(strength2, strength1, update_factor)
+    return player2, strength2
+
 def simulate_round(players, strengths):
     """Simula un singolo turno del torneo."""
     winners = []
@@ -371,6 +500,71 @@ def simulate_round(players, strengths):
         matches.append((players[i], players[i+1]))
 
     return winners, winners_strengths, matches
+
+def simulate_round_calibrated(players, strengths, update_factor):
+    """Simula un singolo turno del torneo."""
+    winners = []
+    winners_strengths = []
+    matches = []  # Lista delle partite giocate in questo turno
+
+    for i in range(0, len(players), 2):
+        winner, winner_strength = play_match_calibrated(
+            players[i], players[i+1],
+            strengths[i], strengths[i+1],
+            update_factor
+        )
+        winners.append(winner)
+        winners_strengths.append(winner_strength)
+        matches.append((players[i], players[i+1]))
+
+    return winners, winners_strengths, matches
+
+
+def simulate_tournament_with_calibration(players, base_strengths, default_bonuses, default_states, verbose=True, track_matches=False):
+    """
+    Versione della simulazione che usa il parametro calibrato.
+    """
+    # Prima calibra il parametro
+    update_factor = calibrate_update_factor(players, base_strengths, default_bonuses, default_states)
+
+    if verbose:
+        st.write(f"Fattore di aggiornamento calibrato: {update_factor:.3f}")
+
+    current_players = players.copy()
+    current_strengths = calculate_total_strengths(
+        base_strengths,
+        [st.session_state.bonus_modifications.get(p, default_bonus)
+         for p, default_bonus in zip(players, default_bonuses)],
+        [st.session_state.player_states[p] for p in players]
+    )
+
+    round_number = 1
+    num_players = len(current_players)
+
+    round_reached = defaultdict(int)
+    matches_played = []
+
+    if verbose:
+        st.text(f"Inizio torneo con {num_players} giocatori")
+
+    while num_players > 1:
+        current_players, current_strengths, round_matches = simulate_round_calibrated(
+            current_players,
+            current_strengths,
+            update_factor
+        )
+
+        for p in current_players:
+            round_reached[p] = round_number + 1
+
+        if track_matches:
+            matches_played.extend(round_matches)
+
+        num_players = len(current_players)
+        round_number += 1
+
+    return current_players[0], round_reached, matches_played
+
 
 def simulate_tournament(players, base_strengths, default_bonuses, default_states, verbose=True, track_matches=False):
     """Simula un singolo torneo."""
@@ -744,7 +938,7 @@ def create_web_app():
                     if i % 100 == 0:
                         progress_bar.progress(i / n_sims)
 
-                    winner, rounds_reached, matches = simulate_tournament(
+                    winner, rounds_reached, matches = simulate_tournament_with_calibration(
                         players, base_strengths, default_bonuses, default_states,
                         verbose=False, track_matches=True
                     )
