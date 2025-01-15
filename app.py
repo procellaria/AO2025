@@ -106,7 +106,7 @@ INITIAL_DATA = [
     ('Dougaz', 254, 0, 0),
     ('Shevchenko', 743, 0, 0),
     ('Alcaraz', 7010, 1500, 1),
-    ('Ruud', 4210, 250, 1),
+    ('Ruud', 4210, 250, 0),
     ('Munar', 922, 0, 0),
     ('Basilashvili', 273, 0, 1),
     ('Menšík', 1162, 150, 1),
