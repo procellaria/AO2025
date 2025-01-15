@@ -259,9 +259,9 @@ def create_tournament_graph(round_probabilities=None):
 
     return dot
 
-def calculate_total_strengths(base_strengths, bonuses, states):
+def calculate_total_strengths(base_strengths, bonuses):
     """Calcola le forze totali dei giocatori"""
-    return [(s + b) * st for s, b, st in zip(base_strengths, bonuses, states)]
+    return [s + b for s, b in zip(base_strengths, bonuses)]
 
 def wilson_interval(count, n, confidence=0.95):
     """
@@ -311,7 +311,7 @@ def update_winner_strength(winner_strength, loser_strength):
     update = 0.16 * (winner_strength + loser_strength) / (1 + np.exp(-1 * (strength_ratio - 1)))
     return winner_strength + update
 
-def play_match(player1, player2, strength1, strength2):
+def play_match(player1, player2, strength1, strength2, state1, state2, base_strength1, base_strength2):
     """
     Simula una singola partita tra due giocatori, gestendo i casi in cui uno o entrambi
     i giocatori sono stati eliminati (stato = 0). Aggiorna la forza del vincitore.
@@ -319,43 +319,51 @@ def play_match(player1, player2, strength1, strength2):
     Args:
         player1: nome del primo giocatore
         player2: nome del secondo giocatore
-        strength1: forza totale del primo giocatore (forza base + bonus) * stato
-        strength2: forza totale del secondo giocatore (forza base + bonus) * stato
+        strength1: forza totale del primo giocatore (forza base + bonus)
+        strength2: forza totale del secondo giocatore (forza base + bonus)
+        state1: stato del primo giocatore (0 o 1)
+        state2: stato del secondo giocatore (0 o 1)
+        base_strength1: forza base del primo giocatore
+        base_strength2: forza base del secondo giocatore
 
     Returns:
         tuple: (vincitore, forza aggiornata del vincitore)
     """
+    # Applica lo stato solo al momento di calcolare le probabilità di vittoria
+    strength1_adjusted = strength1 * state1
+    strength2_adjusted = strength2 * state2
+
     # Caso 1: entrambi i giocatori sono ancora in gioco (strength > 0)
-    if strength1 > 0 and strength2 > 0:
-        total_strength = strength1 + strength2
-        p1 = strength1 / total_strength
+    if strength1_adjusted > 0 and strength2_adjusted > 0:
+        total_strength = strength1_adjusted + strength2_adjusted
+        p1 = strength1_adjusted / total_strength
 
         if np.random.random() < p1:
-            updated_strength = update_winner_strength(strength1, strength2)
+            updated_strength = update_winner_strength(strength1, strength2, base_strength1, base_strength2)
             return player1, updated_strength
-        updated_strength = update_winner_strength(strength2, strength1)
+        updated_strength = update_winner_strength(strength2, strength1, base_strength2, base_strength1)
         return player2, updated_strength
 
     # Caso 2: solo un giocatore è ancora in gioco
-    if strength1 > 0:
+    if strength1_adjusted > 0:
         # Aggiorniamo la forza anche se vinciamo contro un giocatore inattivo
-        updated_strength = update_winner_strength(strength1, strength2)
+        updated_strength = update_winner_strength(strength1, strength2, base_strength1, base_strength2)
         return player1, updated_strength
-    if strength2 > 0:
+    if strength2_adjusted > 0:
         # Aggiorniamo la forza anche se vinciamo contro un giocatore inattivo
-        updated_strength = update_winner_strength(strength2, strength1)
+        updated_strength = update_winner_strength(strength2, strength1, base_strength2, base_strength1)
         return player2, updated_strength
 
     # Caso 3: entrambi i giocatori sono stati eliminati
     # Scelta casuale tra i due giocatori, ma non aggiorniamo la forza
     # poiché entrambi sono già stati eliminati
     if np.random.random() < 0.5:
-        updated_strength = update_winner_strength(strength1, strength2)
+        updated_strength = update_winner_strength(strength1, strength2, base_strength1, base_strength2)
         return player1, strength1
-    updated_strength = update_winner_strength(strength2, strength1)
+    updated_strength = update_winner_strength(strength2, strength1, base_strength2, base_strength1)
     return player2, strength2
 
-def simulate_round(players, strengths):
+def simulate_round(players, strengths, base_strengths, states):
     """Simula un singolo turno del torneo."""
     winners = []
     winners_strengths = []
@@ -364,7 +372,9 @@ def simulate_round(players, strengths):
     for i in range(0, len(players), 2):
         winner, winner_strength = play_match(
             players[i], players[i+1],
-            strengths[i], strengths[i+1]
+            strengths[i], strengths[i+1],
+            states[i], states[i+1],
+            base_strengths[i], base_strengths[i+1]
         )
         winners.append(winner)
         winners_strengths.append(winner_strength)
@@ -378,9 +388,9 @@ def simulate_tournament(players, base_strengths, default_bonuses, default_states
     current_strengths = calculate_total_strengths(
         base_strengths,
         [st.session_state.bonus_modifications.get(p, default_bonus)
-         for p, default_bonus in zip(players, default_bonuses)],
-        [st.session_state.player_states[p] for p in players]
+         for p, default_bonus in zip(players, default_bonuses)]
     )
+    current_states = [st.session_state.player_states[p] for p in players]
 
     round_number = 1
     num_players = len(current_players)
@@ -394,7 +404,9 @@ def simulate_tournament(players, base_strengths, default_bonuses, default_states
     while num_players > 1:
         current_players, current_strengths, round_matches = simulate_round(
             current_players,
-            current_strengths
+            current_strengths,
+            base_strengths,
+            current_states
         )
 
         for p in current_players:
