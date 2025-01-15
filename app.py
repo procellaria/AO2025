@@ -97,7 +97,7 @@ INITIAL_DATA = [
     ('Džumhur', 679, 0, 0),
     ('Vukic', 778, 0, 1),
     ('Klein', 405, 0, 0),
-    ('Korda', 2000, 0, 1),
+    ('Korda', 2000, 0, 0),
     ('Thompson', 1695, 0, 0),
     ('Koepfer', 485, 0, 0),
     ('Müller', 965, 0, 0),
