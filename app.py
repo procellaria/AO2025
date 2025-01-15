@@ -292,7 +292,7 @@ def wilson_interval(count, n, confidence=0.95):
 
     return lower*100, upper*100
 
-def update_winner_strength(winner_strength, loser_strength):
+def update_winner_strength(winner_strength, loser_strength, winner_base_strength, loser_base_strength):
     """
     Aggiorna la forza del vincitore in base alla formula specificata.
     Usa la forza corrente del perdente anche se è stato eliminato.
@@ -300,6 +300,8 @@ def update_winner_strength(winner_strength, loser_strength):
     Args:
         winner_strength: forza del giocatore vincente
         loser_strength: forza del giocatore perdente (anche se eliminato)
+        winner_base_strength: forza base del giocatore vincente
+        loser_base_strength: forza base del giocatore perdente
 
     Returns:
         float: nuova forza del vincitore
@@ -307,7 +309,7 @@ def update_winner_strength(winner_strength, loser_strength):
     if winner_strength <= 0:
         return winner_strength
 
-    strength_ratio = loser_strength / winner_strength
+    strength_ratio = loser_base_strength / winner_base_strength
     update = 0.16 * (winner_strength + loser_strength) / (1 + np.exp(-1 * (strength_ratio - 1)))
     return winner_strength + update
 
