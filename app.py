@@ -30,7 +30,7 @@ INITIAL_DATA = [
     ('Michelsen', 1270, 0, 1),
     ('Mccabe', 216, 0, 0),
     ('Landaluce', 414, 0, 0),
-    ('Diallo', 646, 0, 1),
+    ('Diallo', 646, 0, 0),
     ('Nardi', 637, 0, 0),
     ('Mannarino', 744, 0, 0),
     ('Khachanov', 2410, 0, 1),
