@@ -108,7 +108,7 @@ INITIAL_DATA = [
     ('Alcaraz', 7010, 1750, 1),
     ('Ruud', 4210, 250, 0),
     ('Munar', 922, 0, 0),
-    ('Basilashvili', 273, 0, 1),
+    ('Basilashvili', 273, 0, 0),
     ('Menšík', 1162, 150, 1),
     ('Shang', 1115, 0, 0),
     ('Davidovich Fokina', 790, 0, 1),
