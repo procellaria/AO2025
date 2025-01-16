@@ -12,7 +12,7 @@ import graphviz
 INITIAL_DATA = [
     ('Sinner', 11830, 1500, 1),
     ('Jarry', 1390, 0, 0),
-    ('Schoolkate', 334, 0, 1),
+    ('Schoolkate', 334, 0, 0),
     ('Daniel', 674, 0, 0),
     ('Giron', 1150, 0, 1),
     ('Hanfmann', 615, 0, 0),
