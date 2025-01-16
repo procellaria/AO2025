@@ -73,7 +73,7 @@ INITIAL_DATA = [
     ('Ugo Carabelli', 624, 0, 0),
     ('Tien', 493, 0, 1),
     ('Samrej', 109, 0, 0),
-    ('Medvedev', 5030, 500, 1),
+    ('Medvedev', 5030, 0, 0),
     ('Djokovic', 3900, 2000, 1),
     ('Basavareddy', 566, 0, 0),
     ('Faria', 481, 0, 0),
