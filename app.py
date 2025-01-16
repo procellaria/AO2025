@@ -36,7 +36,7 @@ INITIAL_DATA = [
     ('Khachanov', 2410, 0, 1),
     ('Cerúndolo', 1620, 0, 1),
     ('Bublik', 1330, 0, 0),
-    ('Díaz Acosta', 714, 0, 1),
+    ('Díaz Acosta', 714, 0, 0),
     ('Bergs', 783, 150, 0),
     ('Boyer', 452, 0, 0),
     ('Coria', 617, 0, 0),
