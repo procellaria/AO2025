@@ -39,7 +39,7 @@ INITIAL_DATA = [
     ('Díaz Acosta', 714, 0, 1),
     ('Bergs', 783, 150, 0),
     ('Boyer', 452, 0, 0),
-    ('Coria', 617, 0, 1),
+    ('Coria', 617, 0, 0),
     ('Van De Zandschulp', 672, 0, 0),
     ('De Minaur', 3535, 0, 1),
     ('Fritz', 5350, 0, 1),
