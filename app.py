@@ -53,7 +53,7 @@ INITIAL_DATA = [
     ('Shelton', 2280, 0, 1),
     ('Nakashima', 1335, 100, 0),
     ('Carreño Busta', 317, 0, 0),
-    ('Majchrzak', 491, 0, 1),
+    ('Majchrzak', 491, 0, 0),
     ('Bautista Agut', 1067, 0, 0),
     ('Shapovalov', 1006, 0, 0),
     ('Arnaldi', 1305, 0, 0),
