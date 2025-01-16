@@ -468,6 +468,48 @@ def get_round_matches(matches, round_number):
     # Prendi le partite del turno desiderato
     return matches[start_idx:start_idx + matches_in_round]
 
+def calculate_fair_odds(probability_percent):
+    """
+    Calcola la quota onesta da una probabilità espressa in percentuale.
+
+    Args:
+        probability_percent: probabilità in percentuale (es. 25.5 per 25.5%)
+
+    Returns:
+        float: quota onesta
+    """
+    if probability_percent <= 0:
+        return float('inf')
+    return 100 / probability_percent
+
+def create_results_dataframe(win_stats):
+    results_data = [
+        [i+1, player, f"{prob:.1f}", f"{lower:.1f}", f"{upper:.1f}",
+         f"{calculate_fair_odds(prob):.2f}",
+         f"{calculate_fair_odds(upper):.2f}", # Nota: upper prob -> lower odds
+         f"{calculate_fair_odds(lower):.2f}"] # Nota: lower prob -> upper odds
+        for i, (player, prob, lower, upper) in enumerate(win_stats[:10])
+    ]
+    return pd.DataFrame(
+        results_data,
+        columns=['#', 'Giocatore', 'Probabilità (%)', 'CI Lower (%)', 'CI Upper (%)',
+                'Quota onesta', 'CI Lower quota', 'CI Upper quota']
+    )
+
+def create_finals_dataframe(final_stats):
+    finals_data = [
+        [i+1, f"{p1} vs {p2}", f"{prob:.1f}", f"{lower:.1f}", f"{upper:.1f}",
+         f"{calculate_fair_odds(prob):.2f}",
+         f"{calculate_fair_odds(upper):.2f}", # Nota: upper prob -> lower odds
+         f"{calculate_fair_odds(lower):.2f}"] # Nota: lower prob -> upper odds
+        for i, ((p1, p2), prob, lower, upper) in enumerate(final_stats[:10])
+    ]
+    return pd.DataFrame(
+        finals_data,
+        columns=['#', 'Finale', 'Probabilità (%)', 'CI Lower (%)', 'CI Upper (%)',
+                'Quota onesta', 'CI Lower quota', 'CI Upper quota']
+    )
+
 def calculate_statistics_with_confidence(counts, n_simulations, confidence=0.95):
     """
     Calcola percentuali e intervalli di confidenza per una serie di conteggi.
@@ -539,10 +581,6 @@ def save_statistics_to_file(win_stats, round_probs, final_probs, semifinal_probs
             f.write(f"{p1} vs {p2}: {prob:.2f}% (CI: [{lower:.2f}%, {upper:.2f}%])\n")
 
 def save_statistics_to_string(win_stats, round_probs, final_stats, semifinal_stats, n_simulations, bonus_modifications=None):
-    """
-    Salva tutte le statistiche con intervalli di confidenza in una stringa.
-    Ritorna la stringa completa invece di scrivere su file.
-    """
     output = []
     output.append(f"SIMULAZIONE AUSTRALIAN OPEN 2025")
     output.append(f"Numero di simulazioni: {n_simulations}")
@@ -554,17 +592,20 @@ def save_statistics_to_string(win_stats, round_probs, final_stats, semifinal_sta
 
     output.append("=" * 50)
 
-    # Aggiungi la tabella Top 10 probabilità di vittoria
+    # Modifica la tabella Top 10
     output.append("\nTOP 10 PROBABILITÀ DI VITTORIA")
-    output.append("-" * 30)
-    output.append("\n{:<4} {:<20} {:<12} {:<20}".format(
-        "#", "Giocatore", "Prob. (%)", "Int. Confidenza (%)")
+    output.append("-" * 80)
+    output.append("\n{:<4} {:<20} {:<12} {:<20} {:<12} {:<20}".format(
+        "#", "Giocatore", "Prob. (%)", "Int. Conf. (%)", "Quota onesta", "Int. Conf. quota")
     )
-    output.append("-" * 60)
+    output.append("-" * 80)
 
     for i, (player, prob, lower, upper) in enumerate(win_stats[:10], 1):
-        output.append("{:<4} {:<20} {:<12.2f} [{:.2f}, {:.2f}]".format(
-            i, player, prob, lower, upper)
+        fair_odds = calculate_fair_odds(prob)
+        odds_lower = calculate_fair_odds(upper)  # Nota l'inversione
+        odds_upper = calculate_fair_odds(lower)  # Nota l'inversione
+        output.append("{:<4} {:<20} {:<12.2f} [{:.2f}, {:.2f}] {:<12.2f} [{:.2f}, {:.2f}]".format(
+            i, player, prob, lower, upper, fair_odds, odds_lower, odds_upper)
         )
 
     output.append("\nSTATISTICHE PER GIOCATORE")
@@ -606,9 +647,13 @@ def save_statistics_to_string(win_stats, round_probs, final_stats, semifinal_sta
 
     # Finali più probabili
     output.append("\n\nFINALI PIÙ PROBABILI")
-    output.append("-" * 30)
+    output.append("-" * 80)
     for (p1, p2), prob, lower, upper in final_stats[:10]:
-        output.append(f"{p1} vs {p2}: {prob:.2f}% (CI: [{lower:.2f}%, {upper:.2f}%])")
+        fair_odds = calculate_fair_odds(prob)
+        odds_lower = calculate_fair_odds(upper)
+        odds_upper = calculate_fair_odds(lower)
+        output.append(f"{p1} vs {p2}: {prob:.2f}% (CI: [{lower:.2f}%, {upper:.2f}%]) "
+                     f"Quota: {fair_odds:.2f} (CI: [{odds_lower:.2f}, {odds_upper:.2f}])")
 
     # Semifinali più probabili
     output.append("\n\nSEMIFINALI PIÙ PROBABILI")
