@@ -14,7 +14,7 @@ INITIAL_DATA = [
     ('Jarry', 1390, 0, 0),
     ('Schoolkate', 334, 0, 0),
     ('Daniel', 674, 0, 0),
-    ('Giron', 1150, 0, 0),
+    ('Giron', 1150, 0, 1),
     ('Hanfmann', 615, 0, 0),
     ('Etcheverry', 1315, 0, 0),
     ('Cobolli', 1512, 0, 0),
