@@ -63,7 +63,7 @@ INITIAL_DATA = [
     ('Sonego', 1026, 0, 1),
     ('Wawrinka', 371, 50, 0),
     ('Seyboth Wild', 732, 0, 0),
-    ('Marozsán', 960, 0, 1),
+    ('Marozsán', 960, 0, 0),
     ('Rinderknech', 927, 0, 0),
     ('Tiafoe', 2560, 0, 0),
     ('Popyrin', 1840, 0, 0),
