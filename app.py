@@ -105,7 +105,7 @@ INITIAL_DATA = [
     ('Nishioka', 807, 0, 0),
     ('Dougaz', 254, 0, 0),
     ('Shevchenko', 743, 0, 0),
-    ('Alcaraz', 7010, 1750, 1),
+    ('Alcaraz', 7010, 2000, 1),
     ('Ruud', 4210, 250, 0),
     ('Munar', 922, 0, 0),
     ('Basilashvili', 273, 0, 0),
