@@ -20,7 +20,7 @@ INITIAL_DATA = [
     ('Cobolli', 1512, 0, 0),
     ('Hurkacz', 2555, 0, 0),
     ('Griekspoor', 1280, 0, 0),
-    ('Kecmanović', 1021, 0, 1),
+    ('Kecmanović', 1021, 0, 0),
     ('Lajović', 742, 0, 0),
     ('Berrettini', 1380, 250, 0),
     ('Norrie', 1082, 0, 0),
