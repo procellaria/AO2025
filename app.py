@@ -121,7 +121,7 @@ INITIAL_DATA = [
     ('Nishikori', 743, 0, 0),
     ('Monteiro', 566, 0, 0),
     ("O'Connell", 770, 0, 0),
-    ('Paul', 3145, 0, 1),
+    ('Paul', 3145, 0, 0),
     ('Humbert', 2765, 0, 0),
     ('Gigante', 403, 0, 0),
     ('Habib', 264, 50, 0),
