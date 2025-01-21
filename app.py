@@ -10,7 +10,7 @@ import graphviz
 
 # Dati hardcoded dal file Excel
 INITIAL_DATA = [
-    ('Sinner', 11830, 1500, 1),
+    ('Sinner', 11830, 1000, 1),
     ('Jarry', 1390, 0, 0),
     ('Schoolkate', 334, 0, 0),
     ('Daniel', 674, 0, 0),
@@ -105,7 +105,7 @@ INITIAL_DATA = [
     ('Nishioka', 807, 0, 0),
     ('Dougaz', 254, 0, 0),
     ('Shevchenko', 743, 0, 0),
-    ('Alcaraz', 7010, 2000, 1),
+    ('Alcaraz', 7010, 2000, 0),
     ('Ruud', 4210, 250, 0),
     ('Munar', 922, 0, 0),
     ('Basilashvili', 273, 0, 0),
