@@ -8,7 +8,7 @@ from scipy.stats import norm
 import io
 import graphviz
 
-# Dati hardcoded dal file Excel
+# Dati hardcoded 
 INITIAL_DATA = [
     ('Sinner', 11830, 1000, 1),
     ('Jarry', 1390, 0, 0),
